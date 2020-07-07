@@ -205,12 +205,12 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   rsums <- rowSums(mat2)
   
   sum_all <- -0.5 * sum(rsums)
-  like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
+  like <- -0.5 * n * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
   full_cond <- prior + like
   (full_cond)
 }
 
-p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior 
+p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu, n = nrow(data)) { # Inverse Gamma Prior 
   full_cond <- rep(NA, 3)
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
   in_sum <- rep(NA, n)
@@ -218,12 +218,12 @@ p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
     in_sum[i] <- t(data[i,] - .mu) %*% solve(ST) %*% (data[i,] -.mu)
   }
   sum_all <- -0.5 * sum(in_sum)
-  like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all) 
+  like <- -0.5 * n * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all) 
   full_cond <- prior + like
   (full_cond) 
 }
 
-p_rho <- function(rho, a = 2, b = 3, .mu, ST) { # Beta Prior 
+p_rho <- function(rho, a = 2, b = 3, .mu, ST, n = nrow(data)) { # Beta Prior 
   full_cond <- rep(NA, 3)
   rho_trans <- (rho * 0.5) + 0.5
   prior <- (a-1) * log(rho_trans) +  (b-1) * log(1 - rho_trans)
@@ -231,7 +231,7 @@ p_rho <- function(rho, a = 2, b = 3, .mu, ST) { # Beta Prior
   mat2 <- (mat %*% solve(ST)) * mat
   rsums <- rowSums(mat2)
   sum_all <- -0.5 * sum(rsums)
-  like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
+  like <- -0.5 * n * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
   full_cond <- prior + like
   if(is.na(full_cond)) browser()
   (full_cond)
@@ -260,8 +260,8 @@ makeCov <- function(cors,vars) {
 }
 
 met_gibbs <- function(its) {
-  sd_sig <- 0.5
-  sd_rho <- 0.1
+  sd_sig <- 1
+  sd_rho <- 0.5
   # For sigma, use truncated normal as proposal
   propose_sig <- function(x, mn) {
     #browser()
@@ -331,9 +331,9 @@ met_gibbs <- function(its) {
     
     #browser()
     for(k in 1:3) {
-      candidate_rho <- .7#rtruncnorm(
-     # 1, a = -1, b = 1, mean = mat_rho[i-1,k], sd = sd_rho
-      #)
+      candidate_rho <- rtruncnorm(
+        1, a = -1, b = 1, mean = mat_rho[i-1,k], sd = sd_rho
+      )
       
       cor <- cov2cor(cov)
       cand.rho.vec <- cor[upper.tri(cor)]
@@ -359,7 +359,7 @@ met_gibbs <- function(its) {
       else {
         mat_rho[i,k] <- mat_rho[i-1,k]
       }
-      chol(cov)
+      #chol(cov)
       #browser()
     }
   }
