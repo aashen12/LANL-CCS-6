@@ -77,7 +77,9 @@ sig_tild <- diag(c(1,4,9))
 mu <- mu
 S <- diag(3)
 M <- c(0,0,0)
+
 ## FULL CONDITIONAL DISTRIBUTIONS ##
+
 p_mu <- function(m = M, ST = sig_tild, .S = S, dat = data) {
   sums <- colSums(dat) #update ST
   vals <- rep(NA, 3)
@@ -94,6 +96,7 @@ p_mu <- function(m = M, ST = sig_tild, .S = S, dat = data) {
   #return(mean)
   return(vals)
 }
+
 p_sig <- function(a = 2, b = 1, dat = data, .mu = mu) {
   centered <- t(t(dat) - .mu) #update .mu
   sums <- colSums(centered^2)
@@ -104,6 +107,7 @@ p_sig <- function(a = 2, b = 1, dat = data, .mu = mu) {
   }
   return(vals)
 }
+
 gibbs <- function(its = 10000) {
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_mu <- matrix(NA, nrow = its, ncol = 3)
@@ -155,6 +159,7 @@ library(mvtnorm)
 library(invgamma)
 mu <- c(1, 2, 3)
 sig <- cbind(c(1, 1.4, 2.1), c(1.4, 4.0, 4.2), c(2.1, 4.2, 9.0))
+
 data <- rmvnorm(100, mu, sig)
 n <- nrow(data)
 str(data)
@@ -189,6 +194,7 @@ p_mu <- function(n = nrow(data), ST) {
   mean <- covariance %*% (Sinv %*% m + n * solve(ST) %*% colMeans(data))
   rmvnorm(1, mean, covariance)
 }
+
 p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- rep(NA, 3)
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
@@ -203,6 +209,7 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- prior + like
   (full_cond)
 }
+
 p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior 
   full_cond <- rep(NA, 3)
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
@@ -215,6 +222,7 @@ p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- prior + like
   (full_cond) 
 }
+
 p_rho <- function(rho, a = 2, b = 3, .mu, ST) { # Beta Prior 
   full_cond <- rep(NA, 3)
   rho_trans <- (rho * 0.5) + 0.5
@@ -228,6 +236,7 @@ p_rho <- function(rho, a = 2, b = 3, .mu, ST) { # Beta Prior
   if(is.na(full_cond)) browser()
   (full_cond)
 }
+
 #p_sig(ST = sig, sig_sq = 8, .mu = c(0,0,0))
 #p_sig2(ST = sig, sig_sq = 8, .mu = c(0,0,0))
 ```
@@ -251,8 +260,8 @@ makeCov <- function(cors,vars) {
 }
 
 met_gibbs <- function(its) {
-  sd_sig <- .5
-  sd_rho <- 0.1
+  sd_sig <- 0.5
+  sd_rho <- 0.2
   # For sigma, use truncated normal as proposal
   propose_sig <- function(x, mn) {
     #browser()
@@ -277,7 +286,6 @@ met_gibbs <- function(its) {
     #sample mu with mvn
     #sample sigma given mu
     #sample rho given sigma and mu & rtruncnorm between (-1,1)
-    current.mu <- met_mu[i-1,]
     
     cov <- makeCov(mat_rho[i-1,], mat_sig[i-1,])
     #browser()
@@ -289,7 +297,7 @@ met_gibbs <- function(its) {
       candidate_sig <- rtruncnorm(
         1, a = 0, mean = mat_sig[i-1,j], sd = sd_sig
       )
-      
+
       if(j == 1){candidate_sig = 1}
       if(j == 2){candidate_sig = 4}
       if(j == 3){candidate_sig = 9}
@@ -334,7 +342,6 @@ met_gibbs <- function(its) {
       )
       
       cor <- cov2cor(cov)
-      
       cand.rho.vec <- cor[upper.tri(cor)]
       cand.rho.vec[k] <- candidate_rho
       
@@ -359,9 +366,10 @@ met_gibbs <- function(its) {
         mat_rho[i,k] <- mat_rho[i-1,k]
       }
       chol(cov)
+      #browser()
     }
   }
-  list(met_mu, mat_sig, mat_rho, a_sig, a_rho, cov)
+  list(met_mu, mat_sig, mat_rho, a_sig, a_rho, cov2cor(cov))
 }
 its <- 1000
 a <- met_gibbs(its = its)
