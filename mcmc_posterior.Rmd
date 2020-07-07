@@ -269,7 +269,7 @@ met_gibbs <- function(its) {
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_rho <- matrix(NA, nrow = its, ncol = 3)
   mat_sig[1,] <- c(1, 4, 9)#rep(1, 3)
-  mat_rho[1,] <- rep(.7, 3) #12, 13, 23
+  mat_rho[1,] <- rep(0, 3) #12, 13, 23
   a_sig <- rep(0, 3)
   a_rho <- rep(0, 3)
   
@@ -380,24 +380,6 @@ a[[5]]/its
 eigen(.cov)
 ```
 
-
-```{r}
-sig <- 1:3
-rho <- 4:6
-lol <- 4:6
-mat <- diag(sig)
-mat[upper.tri(mat)] <- rho
-mat[lower.tri(mat)] <- lol
-mat
-mat2 <- mat
-o <- rnorm(3); o
-for(i in 1:nrow(mat)) {
-  mat2[i,i] <- o[i]
-}
-mat2
-mat2[upper.tri(mat)] * c(1,0, 10)
-mat2 
-```
 
 
 # Inverse-Wishart Method
