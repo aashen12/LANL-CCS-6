@@ -8,6 +8,7 @@ output: pdf_document
 # Overview
 
 Say you have $\mathbf{y}_1,\dots,\mathbf{y}_n \sim N(\boldsymbol{\mu},\mathbf{\Sigma})$ where each $\mathbf{y}_i$ is a vector of length $p$. Use $n=100$, $p=3$, $\boldsymbol{\mu} = (1, 2,3)$ and
+
 $$
 \mathbf{\Sigma} =
 \begin{pmatrix}
@@ -59,7 +60,7 @@ $$
 
 
 ```{r}
-set.seed(123)
+set.seed(12)
 library(mvtnorm)
 library(invgamma)
 mu <- c(1, 2, 3)
@@ -121,14 +122,12 @@ gibbs <- function(its = 10000) {
 }
 a <- gibbs()
 matplot(a[[1]], type = "l")
-matplot(sqrt(a[[2]]), type = "l")
+matplot((a[[2]]), type = "l")
 ```
 
 \pagebreak
 
 # Task 2
-
-
 
 Our likelihood follows a multivariate normal distribution with mean $\boldsymbol{\mu}$ and variance $diag(\sigma^2_1,\dots,\sigma^2_p)$.
 
@@ -154,7 +153,7 @@ $$
 We start by generating the same data from above:
 
 ```{r}
-set.seed(123)
+set.seed(12)
 library(mvtnorm)
 library(invgamma)
 mu <- c(1, 2, 3)
@@ -187,8 +186,6 @@ which we simplify to $\rho_i$ and work with the upper and lower triangular porti
 
 ## Full Conditionals
 
-
-
 ```{r}
 p_mu <- function(n = nrow(data), ST) {
   mean <- solve(Sinv + n * solve(ST)) %*% (Sinv %*% m + n * solve(ST) %*% colMeans(data))
@@ -201,6 +198,7 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
   
   mat <- t(t(data) - .mu) 
+  STinv <- tryCatch(solve(ST), error = function(e) browser())
   mat2 <- (mat %*% solve(ST)) * mat
   rsums <- rowSums(mat2)
   
@@ -211,8 +209,7 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   (full_cond)
 }
 
-
-p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
+p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior 
   full_cond <- rep(NA, 3)
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
   in_sum <- rep(NA, n)
@@ -220,67 +217,67 @@ p_sig2 <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
     in_sum[i] <- t(data[i,] - .mu) %*% solve(ST) %*% (data[i,] -.mu)
   }
   sum_all <- -0.5 * sum(in_sum)
-  like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
+  like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all) 
   full_cond <- prior + like
-
-  (full_cond)
+  (full_cond) 
 }
 
 p_rho <- function(rho, a = 2, b = 3, .mu, ST) { # Beta Prior 
   full_cond <- rep(NA, 3)
-  prior <- (a-1) * log(rho) +  (b-1) * log(1-rho)
+  rho_trans <- (rho * 0.5) + 0.5
+  prior <- (a-1) * log(rho_trans) +  (b-1) * log(1 - rho_trans)
   mat <- t(t(data) - .mu) 
   mat2 <- (mat %*% solve(ST)) * mat
   rsums <- rowSums(mat2)
   sum_all <- -0.5 * sum(rsums)
   like <- -0.5 * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
   full_cond <- prior + like
-  
+  if(is.na(full_cond)) browser()
   (full_cond)
 }
 
-system.time(p_sig(ST = sig, sig_sq = 1, .mu = c(0,0,0)))
-system.time(p_sig2(ST = sig, sig_sq = 1, .mu = c(0,0,0)))
+#p_sig(ST = sig, sig_sq = 8, .mu = c(0,0,0))
+#p_sig2(ST = sig, sig_sq = 8, .mu = c(0,0,0))
 ```
 
 ## Metropolis-Hastings and Gibbs
 
 ```{r, warning=FALSE}
-set.seed(12)
 library(dplyr)
 library(truncnorm)
 met_gibbs <- function(its) {
-  
+  sd_sig <- 2
+  sd_rho <- 0.5
   # For sigma, use truncated normal as proposal
-  propose_sig <- function(x, mn, sd = 0.1) {
+  propose_sig <- function(x, mn) {
     #browser()
-    log(dtruncnorm(x, a = 0, mean = mn, sd = sd))
+    log(dtruncnorm(x, a = 0, mean = mn, sd = sd_sig))
   }
   
-  propose_rho <- function(x, mn, sd = 0.8) {
-    log(dtruncnorm(x, a = -1, b = 1, mean = mn, sd = sd))
+  propose_rho <- function(x, mn) {
+    log(dtruncnorm(x, a = -1, b = 1, mean = mn, sd = sd_rho))
   }
   
   met_mu <- matrix(NA, its, 3)
-  met.mu.start <- rep(0, 3)
-  met_mu[1,] <- met.mu.start
+  met_mu[1,] <- rep(0, 3)
   
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_rho <- matrix(NA, nrow = its, ncol = 3)
   mat_sig[1,] <- rep(1, 3)
   mat_rho[1,] <- rep(0, 3) #12, 13, 23
-  a_sig <- 0
-  a_rho <- 0
+  a_sig <- rep(0, 3)
+  a_rho <- rep(0, 3)
+  
   for(i in 2:its) {
-    # sample mu with mvn
+    #sample mu with mvn
     #sample sigma given mu
     #sample rho given sigma and mu & rtruncnorm between (-1,1)
     current.mu <- met_mu[i-1,]
  
     cor_to_cov <- c(
-      (mat_sig[i-1,1] * mat_sig[i-1,2]),
-      (mat_sig[i-1,1] * mat_sig[i-1,3]),
-      (mat_sig[i-1,2] * mat_sig[i-1,3])
+      sqrt(mat_sig[i-1,1] * mat_sig[i-1,2]),
+      sqrt(mat_sig[i-1,1] * mat_sig[i-1,3]),
+      sqrt(mat_sig[i-1,2] * mat_sig[i-1,3])
     ) #convert correlation to covariance
     
     cov <- diag(mat_sig[i-1,])
@@ -294,16 +291,16 @@ met_gibbs <- function(its) {
     for(j in 1:3) {
       cov2 <- cov
       candidate_sig <- rtruncnorm(
-        1, a = 0, mean = met_mu[i,j], sd = 0.1
+        1, a = 0, mean = mat_sig[i-1,j], sd = sd_sig
       )
       
       cov2[j,j] <- candidate_sig
 
       ratio_sig <- 
-        (p_sig(ST = cov2, sig_sq = cov2[j,j],.mu = met_mu[i,]) - 
+        ( p_sig(ST = cov2, sig_sq = candidate_sig, .mu = met_mu[i,]) - 
           propose_sig(candidate_sig, mn = cov[j,j]) ) - 
-            (p_sig(ST = cov, sig_sq = cov[j,j], .mu = met_mu[i,]) - 
-               propose_sig(cov[j,j], mn = candidate_sig ))
+            ( p_sig(ST = cov, sig_sq = cov[j,j], .mu = met_mu[i,]) - 
+               propose_sig(cov[j,j], mn = candidate_sig) )
       
       pmove <- min(0, ratio_sig)
       #if(is.na(pmove)) browser()
@@ -311,17 +308,18 @@ met_gibbs <- function(its) {
       
       if(u < pmove) {
         mat_sig[i,j] <- candidate_sig
-        a_sig = a_sig + 1
+        #cov2[j,j] <- candidate_sig
+        a_sig[j] <- a_sig[j] + 1
         cov <- cov2
       }
       else {
         mat_sig[i,j] <- mat_sig[i-1,j]
+        cov2[j,j] <- cov[j,j]
       }
     }
     
-    
     ### RHO ###
-    #browser()
+    
     cor_to_cov3 <- c(
       sqrt(mat_sig[i,1] * mat_sig[i,2]),
       sqrt(mat_sig[i,1] * mat_sig[i,3]),
@@ -331,26 +329,28 @@ met_gibbs <- function(its) {
     #browser()
     for(k in 1:3) {
       candidate_rho <- rtruncnorm(
-      1, a = -1, b = 1, mean = met_mu[i,k], sd = 0.09
+      1, a = -1, b = 1, mean = mat_rho[i-1,k], sd = sd_rho
       )
       
       cov3 <- cov
       cov3[upper.tri(cov3)] <- candidate_rho * cor_to_cov3
       cov3[lower.tri(cov3)] <- candidate_rho * cor_to_cov3
-      #browser()
+
       ratio_cov <- 
       (p_rho(rho = candidate_rho, .mu = met_mu[i,], ST = cov3) -
         propose_rho(candidate_rho, mn = mat_rho[i-1,k])) -
-        (p_rho(rho=(cov3[upper.tri(cov3)][k])/(cor_to_cov3[k]), .mu = met_mu[i,], ST = cov3) -
+        (p_rho(rho = mat_rho[i-1,k], .mu = met_mu[i,], ST = cov) -
           propose_rho(mat_rho[i-1,k], mn = candidate_rho))
-      #browser()
+      
+      if(is.na(ratio_cov)) browser()
+      
       pmove <- min(0, ratio_cov)
-      #if(is.na(pmove)) browser()
+
       u <- log(runif(1))
       if(u < pmove) {
         #if(is.na(candidate_rho)) browser()
         mat_rho[i,k] <- candidate_rho
-        a_rho = a_rho + 1
+        a_rho[k] <- a_rho[k] + 1
         cov <- cov3
       }
       else {
@@ -358,7 +358,7 @@ met_gibbs <- function(its) {
       }
     }
   }
-  list(met_mu, mat_sig^2, mat_rho, a_sig, a_rho)
+  list(met_mu, mat_sig, mat_rho, a_sig, a_rho, cov)
 }
 
 its <- 1000
@@ -374,6 +374,8 @@ matplot((a[[2]]), type = "l")
 matplot(a[[3]], type = "l")
 a[[4]]/its
 a[[5]]/its
+.cov <- a[[6]]; .cov
+eigen(.cov)
 ```
 
 
