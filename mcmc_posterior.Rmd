@@ -261,7 +261,7 @@ makeCov <- function(cors,vars) {
 
 met_gibbs <- function(its) {
   sd_sig <- 0.5
-  sd_rho <- 0.2
+  sd_rho <- 0.1
   # For sigma, use truncated normal as proposal
   propose_sig <- function(x, mn) {
     #browser()
