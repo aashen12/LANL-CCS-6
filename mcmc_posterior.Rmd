@@ -346,7 +346,7 @@ met_gibbs <- function(its) {
         (p_rho(rho = mat_rho[i-1,k], .mu = met_mu[i,], ST = cov) -
           propose_rho(mat_rho[i-1,k], mn = candidate_rho))
       
-      if(is.na(ratio_cov)) browser()
+      #if(is.na(ratio_cov)) browser()
       
       pmove <- min(0, ratio_cov)
       u <- log(runif(1))
