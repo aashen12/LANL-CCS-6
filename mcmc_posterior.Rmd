@@ -269,7 +269,7 @@ met_gibbs <- function(its) {
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_rho <- matrix(NA, nrow = its, ncol = 3)
   mat_sig[1,] <- c(1, 4, 9)#rep(1, 3)
-  mat_rho[1,] <- rep(0, 3) #12, 13, 23
+  mat_rho[1,] <- rep(0 , 3) #12, 13, 23
   a_sig <- rep(0, 3)
   a_rho <- rep(0, 3)
   
@@ -316,7 +316,6 @@ met_gibbs <- function(its) {
       }
       else {
         mat_sig[i,j] <- mat_sig[i-1,j]
-        cov2[j,j] <- cov[j,j]
       }
     }
     
@@ -334,10 +333,13 @@ met_gibbs <- function(its) {
       1, a = -1, b = 1, mean = mat_rho[i-1,k], sd = sd_rho
       )
       
-      cand.rho.vec <- cov2cor(cov)[upper.tri(cov)]
+      cor <- cov2cor(cov)
+      
+      cand.rho.vec <- cor[upper.tri(cor)]
       cand.rho.vec[k] <- candidate_rho
       
-      cov3 <- makeCov(cand.rho.vec,mat_sig[i,])
+      cov3 <- makeCov(cand.rho.vec, mat_sig[i,])
+      
       ratio_cov <- 
       (p_rho(rho = candidate_rho, .mu = met_mu[i,], ST = cov3) -
         propose_rho(candidate_rho, mn = mat_rho[i-1,k])) -
@@ -349,7 +351,6 @@ met_gibbs <- function(its) {
       pmove <- min(0, ratio_cov)
       u <- log(runif(1))
       if(u < pmove) {
-        #if(is.na(candidate_rho)) browser()
         mat_rho[i,k] <- candidate_rho
         a_rho[k] <- a_rho[k] + 1
         cov <- cov3
@@ -357,7 +358,6 @@ met_gibbs <- function(its) {
       else {
         mat_rho[i,k] <- mat_rho[i-1,k]
       }
-      
       chol(cov)
     }
   }
