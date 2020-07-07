@@ -105,7 +105,7 @@ $$
 $$
 
 $$
-=  (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
+= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
 $$
 
 and
