@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 # Overview
-
+# I'm changing this
 Say you have $\mathbf{y}_1,\dots,\mathbf{y}_n \sim N(\boldsymbol{\mu},\mathbf{\Sigma})$ where each $\mathbf{y}_i$ is a vector of length $p$. Use $n=100$, $p=3$, $\boldsymbol{\mu} = (1, 2,3)$ and
 $$
 \mathbf{\Sigma} =
