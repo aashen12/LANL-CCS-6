@@ -91,7 +91,7 @@ $$
 \propto (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
 $$
 
-## Full Conditionals
+## Full Conditional Distributions
 
 Multiplying the priors by the likelihood function, we get that:
 
