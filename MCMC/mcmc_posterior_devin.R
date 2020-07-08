@@ -1,9 +1,11 @@
+library(mnormt)
+library(invgamma)
+library(mvtnorm)
 n<-100
 data <- rmvnorm(n, c(1, 2, 3), cbind(c(1, 1.4, 2.1), c(1.4, 4.0, 4.2), c(2.1, 4.2, 9.0)))
 p<-3
 
-library(mnormt)
-library(invgamma)
+
 
 s2.a<-.01
 s2.b<-.01
@@ -104,3 +106,4 @@ burn<-1:1000
 colMeans(mu[-burn,])
 colMeans(s2[-burn,])
 colMeans(rho[-burn,])
+
