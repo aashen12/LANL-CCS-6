@@ -221,3 +221,4 @@ met_gibbs <- function(its) {
   }
   list(met_mu, mat_sig, mat_rho, a_sig, a_rho, cov)
 }
+
