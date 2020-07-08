@@ -142,7 +142,7 @@ which we simplify to $\rho_i$ and work with the upper and lower triangular porti
 Please see the `mcmc_gibbs_script.R` file for the code used to generate these results.
 
 ```{r, warning=FALSE}
-its <- 10000
+its <- 1000
 a <- met_gibbs(its = its)
 ```
 
