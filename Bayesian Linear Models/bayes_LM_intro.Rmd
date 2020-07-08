@@ -162,17 +162,18 @@ $$
 and
 
 $$
-\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\tau^2(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}\boldsymbol{X'y}, ~(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}\bigg)
+\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\big(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big)^{-1}~\boldsymbol{X'y}, ~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X})+ \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}\bigg)
 $$
 
 \pagebreak
 
 # 2 MCMC Sampler
 
-```{r}
+```{r Data Modification}
 library(dplyr)
 dat <- read.csv("data.csv")
 dat2 <- dat[,-1]
+
 y <- dat[,"y"]
 X <- dat[,-c(1,2)] %>% as.matrix()
 X <- cbind(1, X)
@@ -220,33 +221,34 @@ $$
 After solving for the values of $\mu_{\beta}$ and $\boldsymbol \Sigma_{\beta}$, we get that
 
 $$
-\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\tau^2(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}\boldsymbol{X'y}, ~(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}\bigg)
+\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\big(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big)^{-1}~\boldsymbol{X'y}, ~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X}) + \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}\bigg)
 $$
 
-This is a p-variate normal distribution with mean $\tau^2(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}\boldsymbol{X'y}$ and covaraince matrix $(\sigma^2 \boldsymbol I + \tau^2\boldsymbol{X'X})^{-1}$.
+This is a p-variate normal distribution with mean $\big[~(\boldsymbol{X'X})^{-1} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big]^{-1}~\boldsymbol{X'y}$ and covaraince matrix $~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X})^{-1} + \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}$.
 
 The code for the full conditional distribution of $\boldsymbol \beta$ is as follows:
 
 ```{r}
 library(mvtnorm)
 p_beta <- function(sig_sq, tau_sq = 1, p = ncol(X)) {
-  sig <- solve( (sig_sq * diag(p) ) + (tau_sq * t(X) %*% X)) 
-  mu <- tau_sq * (sig) %*% t(X) %*% y
-  #browser()
+  sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p) ) 
+  mu <- (1/sig_sq) * sig %*% t(X) %*% y
   rmvnorm(1, mean = mu, sigma = sig)
 }
 ```
 
 
+
+
 ## Gibbs Sampler
 
-```{r, error=TRUE}
+```{r}
 set.seed(12)
 gibbs <- function(its, p = ncol(X)) {
   mat_beta <- matrix(NA, its, p)
   mat_sig <- rep(NA, its)
   mat_sig[1] <- 1
-  mat_beta[1,] <- rep(0, p)
+  mat_beta[1,] <- c(1, rep(0, p-1))
   for(i in 2:its) {
     mat_beta[i,] <- p_beta(sig_sq = mat_sig[i-1])
     #browser()
@@ -264,8 +266,6 @@ a <- gibbs(its = its)
 ```{r}
 matplot(a[[1]], type = "l", main = "Plot of Beta vs. Iterations")
 plot(a[[2]], type = "l", main = "Plot of sigma^2 vs. Iterations")
-#matplot(a[[1]][,c(2,3,11)], type = "l")
-tail(a[[2]])
 ```
 
 
@@ -278,11 +278,13 @@ s^2 = \frac{S(\hat{\boldsymbol\beta})}{n - p - 1}
 $$
 
 ```{r}
-mod <- lm(y ~ ., data = dat2) 
+mod <- lm(y ~ ., data = dat2)
+mod2 <- lm(y ~ 0 + X)
+all(mod$coefficients == mod2$coefficients)
 res <- mod$residuals
 S_beta <- t(res) %*% res
 s_sq <- S_beta / (nrow(X) - (ncol(X) - 1) - 1) #or just 1000 - 12
-s_sq #same ting from summary table
+s_sq #same thing from summary table
 summary(mod)$sigma^2 #from summary table
 mean(a[[2]])
 ```
