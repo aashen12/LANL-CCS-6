@@ -2,7 +2,7 @@
 
 Projects and code for all work done with the Statistical Sciences Group (CCS-6) at Los Alamos National Laboratory, Summer 2020. 
 
-All of the code in this repository belongs to Andy Shen and The CCS-6 Group at Los Alamos National Laboratory. This code MAY NOT be used or distributed by anyone without explicit permission.
+All of the code in this repository belongs to Andy Shen and the CCS-6 Group at Los Alamos National Laboratory. This code MAY NOT be used or distributed by anyone without explicit permission.
 
 ALL WORK IS OPEN-SOURCE AND UNRESTRICTED/UNCLASSIFIED. 
 
