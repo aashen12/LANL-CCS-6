@@ -4,8 +4,6 @@
 # LANL, CCS-6
 
 ### TASK 1 ###
-
-library(invgamma)
 sig_tild <- diag(c(1,4,9))
 mu <- mu
 S <- diag(3)
@@ -49,15 +47,13 @@ gibbs_easy <- function(its = 10000) {
   mat_sig[1,] <- rep(1, 3)
   mat_mu[1,] <- rep(0, 3)
   for(i in 2:its) {
-    # call p_sig with mu = mat_mu[i-1,]
-    # call p_mu with updated value from p_sig
     mat_sig[i,] <- p_sig_easy(.mu = mat_mu[i-1,])
     mat_mu[i,] <- p_mu_easy(ST = diag(mat_sig[i,]))
   }
   list(mat_mu, mat_sig)
 }
 
-################################################################################################################
+#########################################################################################################################
 
 ### TASK 2 ###
 
@@ -67,10 +63,11 @@ p_mu <- function(n = nrow(data), ST) {
   covariance <- solve(Sinv + n * solve(ST))
   mean <- covariance %*% (Sinv %*% m + n * solve(ST) %*% colMeans(data))
   rmvnorm(1, mean, covariance)
-}
+} #full posterior for mu
 
 p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- rep(NA, 3)
+  
   prior <- (-alpha - 1) * log(sig_sq) + (-beta/sig_sq)
   
   mat <- t(t(data) - .mu) 
@@ -80,28 +77,30 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   
   sum_all <- -0.5 * sum(rsums)
   like <- -0.5 * n * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
+  
   full_cond <- prior + like
-  (full_cond)
-}
+  full_cond
+} #full posterior for sigma^2
 
 p_rho <- function(rho, a = 2, b = 3, .mu, ST, n = nrow(data)) { # Beta Prior 
   full_cond <- rep(NA, 3)
+  
   rho_trans <- (rho * 0.5) + 0.5
+  
   prior <- (a-1) * log(rho_trans) +  (b-1) * log(1 - rho_trans)
+  
   mat <- t(t(data) - .mu) 
   mat2 <- (mat %*% solve(ST)) * mat
   rsums <- rowSums(mat2)
   sum_all <- -0.5 * sum(rsums)
   like <- (-n/2) * (determinant(ST, logarithm = TRUE)$modulus) + (sum_all)
+  
   full_cond <- prior + like
-  if(is.na(full_cond)) browser()
-  (full_cond)
-}
+  full_cond
+} #full posterior for rho
 
 
 ## GIBBS SAMPLER ##
-library(dplyr)
-library(truncnorm)
 
 cor2cov <- function(cor.mat,vars) {
   mat <- matrix(rep(sqrt(vars), length(vars)), nrow = length(vars))
@@ -118,11 +117,11 @@ makeCov <- function(cors,vars) {
 met_gibbs <- function(its) {
   sd_sig <- 0.70
   sd_rho <- 0.09
-  # For sigma, use truncated normal as proposal
+  # tuning sd values
+  
   propose_sig <- function(x, mn) {
-    #browser()
     log(dtruncnorm(x, a = 0, mean = mn, sd = sd_sig))
-  }
+  } #truncated normal for proposal
   
   propose_rho <- function(x, mn) {
     log(dtruncnorm(x, a = -1, b = 1, mean = mn, sd = sd_rho))
@@ -133,8 +132,8 @@ met_gibbs <- function(its) {
   
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_rho <- matrix(NA, nrow = its, ncol = 3)
-  mat_sig[1,] <- c(1, 4, 9)#rep(1, 3)
-  mat_rho[1,] <- rep(0.7, 3) #12, 13, 23
+  mat_sig[1,] <- rep(1, 3)
+  mat_rho[1,] <- rep(0, 3) #12, 13, 23
   a_sig <- rep(0, 3)
   a_rho <- rep(0, 3)
   

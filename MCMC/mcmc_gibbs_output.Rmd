@@ -33,6 +33,8 @@ to generate some data
 set.seed(12)
 library(mvtnorm)
 library(invgamma)
+library(dplyr)
+library(truncnorm)
 mu <- c(1, 2, 3); mu
 sig <- cbind(c(1, 1.4, 2.1), c(1.4, 4.0, 4.2), c(2.1, 4.2, 9.0)); sig
 data <- rmvnorm(1000, mu, sig)
@@ -40,7 +42,7 @@ n <- nrow(data)
 str(data)
 ```
 
-```{r, include=FALSE}
+```{r, include=TRUE}
 source("mcmc_gibbs_script.R")
 ```
 
