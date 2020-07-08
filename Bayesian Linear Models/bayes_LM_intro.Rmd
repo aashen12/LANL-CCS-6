@@ -33,7 +33,7 @@ Hint: the full conditionals will be recognizable distributions (conjugate).
 
 ## Prior Distributions
 
-We know that $\boldsymbol \beta \sim N(\mathbf 0, \tau^2 \mathbf I)$ and $\sigma^2 \sim IG(a,b)$.
+We know that $\boldsymbol \beta \sim N(\mathbf 0, \tau^2 \boldsymbol I)$ and $\sigma^2 \sim IG(a,b)$.
 
 Moreover,
 
@@ -86,7 +86,7 @@ $$
 $$
 
 $$
-\propto (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
+= (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
 $$
 
 ## Full Conditional Distributions
@@ -99,14 +99,14 @@ p(\sigma^2 \mid \cdot) \propto (\sigma^2)^{-\alpha-1} exp \bigg[-\frac{b}{\sigma
 $$
 
 $$
-\propto (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{b}{\sigma^2}-\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
+= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{b}{\sigma^2}-\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
 $$
 
 $$
 = (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
 $$
 
-and
+For the full posterior distribution, we have that
 
 $$
 p(\boldsymbol \beta | \cdot) \propto exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
@@ -162,7 +162,7 @@ $$
 and
 
 $$
-\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\big(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big)^{-1}~\boldsymbol{X'y}, ~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X})+ \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}\bigg)
+\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg\lbrace\bigg(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\bigg)^{-1}\boldsymbol{X'y}, \bigg(\frac{1}{\sigma^2}(\boldsymbol{X'X}) + \frac{1}{\tau^2}\boldsymbol I~\bigg)^{-1}\bigg\rbrace
 $$
 
 \pagebreak
@@ -172,13 +172,12 @@ $$
 ```{r Data Modification}
 library(dplyr)
 dat <- read.csv("data.csv")
-dat2 <- dat[,-1]
 
-y <- dat[,"y"]
+y <- dat$y
 X <- dat[,-c(1,2)] %>% as.matrix()
 X <- cbind(1, X)
-nrow(X) # n
-ncol(X) # p = 11, p + 1 = 12
+n <- nrow(X) # n
+p <- ncol(X) - 1# p = 11, p + 1 = 12
 ```
 
 
@@ -214,6 +213,9 @@ $$
 \propto ({\tau^2})^{-\frac{p}{2}} exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta \bigg] 
 (\sigma^2)^{-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
 $$
+
+which is proportional to
+
 $$
 \propto exp((\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta})' ~ \boldsymbol\Sigma_{\boldsymbol\beta}^{-1} ~ (\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta}))
 $$
@@ -221,10 +223,10 @@ $$
 After solving for the values of $\mu_{\beta}$ and $\boldsymbol \Sigma_{\beta}$, we get that
 
 $$
-\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg(\big(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big)^{-1}~\boldsymbol{X'y}, ~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X}) + \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}\bigg)
+\boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg\lbrace\bigg(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\bigg)^{-1}\boldsymbol{X'y}, \bigg(\frac{1}{\sigma^2}(\boldsymbol{X'X}) + \frac{1}{\tau^2}\boldsymbol I~\bigg)^{-1}\bigg\rbrace
 $$
 
-This is a p-variate normal distribution with mean $\big[~(\boldsymbol{X'X})^{-1} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\big]^{-1}~\boldsymbol{X'y}$ and covaraince matrix $~\big(~\frac{1}{\sigma^2}(\boldsymbol{X'X})^{-1} + \frac{1}{\tau^2}\boldsymbol I~\big)^{-1}$.
+This is a p-variate normal distribution with mean vector and covariance matrix listed above.
 
 The code for the full conditional distribution of $\boldsymbol \beta$ is as follows:
 
@@ -237,38 +239,35 @@ p_beta <- function(sig_sq, tau_sq = 1, p = ncol(X)) {
 }
 ```
 
-
-
-
 ## Gibbs Sampler
 
 ```{r}
 set.seed(12)
-gibbs <- function(its, p = ncol(X)) {
-  mat_beta <- matrix(NA, its, p)
+gibbs <- function(its) {
+  mat_beta <- matrix(NA, its, p+1)
   mat_sig <- rep(NA, its)
-  mat_sig[1] <- 1
-  mat_beta[1,] <- c(1, rep(0, p-1))
+  mat_sig[1] <- 0.001
+  mat_beta[1,] <- rep(0, p+1)
   for(i in 2:its) {
     mat_beta[i,] <- p_beta(sig_sq = mat_sig[i-1])
-    #browser()
     mat_sig[i] <- p_sig(beta = mat_beta[i,])
   }
   list(mat_beta, mat_sig)
 }
+
 its <- 1000
 a <- gibbs(its = its)
+mat_beta <- a[[1]]
+mat_sig <- a[[2]]
 ```
 
 
 
 
 ```{r}
-matplot(a[[1]], type = "l", main = "Plot of Beta vs. Iterations")
-plot(a[[2]], type = "l", main = "Plot of sigma^2 vs. Iterations")
+matplot(mat_beta, type = "l", main = "Plot of Beta vs. Iterations")
+plot(mat_sig, type = "l", main = "Plot of sigma^2 vs. Iterations")
 ```
-
-
 
 
 We know that:
@@ -278,21 +277,18 @@ s^2 = \frac{S(\hat{\boldsymbol\beta})}{n - p - 1}
 $$
 
 ```{r}
-mod <- lm(y ~ ., data = dat2)
-mod2 <- lm(y ~ 0 + X)
-all(mod$coefficients == mod2$coefficients)
+mod <- lm(y ~ 0 + X)
 res <- mod$residuals
 S_beta <- t(res) %*% res
-s_sq <- S_beta / (nrow(X) - (ncol(X) - 1) - 1) #or just 1000 - 12
-s_sq #same thing from summary table
-summary(mod)$sigma^2 #from summary table
-mean(a[[2]])
+s_sq <- S_beta / (n - p - 1)#or just 1000 - 12
+s_sq[,,drop = TRUE]
+mean(mat_sig)
 ```
 
 
 ```{r}
-colMeans(a[[1]])
-mod$coefficients
+colMeans(mat_beta)
+mod$coefficients 
 ```
 
 

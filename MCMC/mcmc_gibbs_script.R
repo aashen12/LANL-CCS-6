@@ -65,6 +65,7 @@ p_mu <- function(n = nrow(data), ST) {
   rmvnorm(1, mean, covariance)
 } #full posterior for mu
 
+
 p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- rep(NA, 3)
   
@@ -81,6 +82,7 @@ p_sig <- function(alpha = 1, beta = 1, ST, sig_sq, .mu) { # Inverse Gamma Prior
   full_cond <- prior + like
   full_cond
 } #full posterior for sigma^2
+
 
 p_rho <- function(rho, a = 2, b = 3, .mu, ST, n = nrow(data)) { # Beta Prior 
   full_cond <- rep(NA, 3)
@@ -105,14 +107,16 @@ p_rho <- function(rho, a = 2, b = 3, .mu, ST, n = nrow(data)) { # Beta Prior
 cor2cov <- function(cor.mat,vars) {
   mat <- matrix(rep(sqrt(vars), length(vars)), nrow = length(vars))
   cor.mat * mat * t(mat)
-}
+} #opposite of cov2cor()
+
 
 makeCov <- function(cors,vars) {
   cor.mat <- diag(length(vars))
   cor.mat[upper.tri(cor.mat)] <- cor.mat[lower.tri(cor.mat)] <- cors
   mat <- matrix(rep(sqrt(vars), length(vars)), nrow = length(vars))
   cor.mat * mat * t(mat)
-}
+} #turns vector of correlation coefs into a covariance matrix
+
 
 met_gibbs <- function(its) {
   sd_sig <- 0.70
@@ -121,21 +125,24 @@ met_gibbs <- function(its) {
   
   propose_sig <- function(x, mn) {
     log(dtruncnorm(x, a = 0, mean = mn, sd = sd_sig))
-  } #truncated normal for proposal
+  } #truncated normal for all proposal distributions
   
   propose_rho <- function(x, mn) {
     log(dtruncnorm(x, a = -1, b = 1, mean = mn, sd = sd_rho))
   }
   
-  met_mu <- matrix(NA, its, 3)
-  met_mu[1,] <- rep(0, 3)
-  
+  mat_mu <- matrix(NA, its, 3)
   mat_sig <- matrix(NA, nrow = its, ncol = 3)
   mat_rho <- matrix(NA, nrow = its, ncol = 3)
+  
+  mat_mu[1,] <- rep(0, 3)
   mat_sig[1,] <- rep(1, 3)
-  mat_rho[1,] <- rep(0, 3) #12, 13, 23
-  a_sig <- rep(0, 3)
+  mat_rho[1,] <- rep(0, 3) #entries 12, 13, 23
+  #starting values
+  
+  a_sig <- rep(0, 3) 
   a_rho <- rep(0, 3)
+  # acceptance rate trackers
   
   for(i in 2:its) {
     #sample mu with mvn
@@ -143,8 +150,8 @@ met_gibbs <- function(its) {
     #sample rho given sigma and mu & rtruncnorm between (-1,1)
     
     cov <- makeCov(mat_rho[i-1,], mat_sig[i-1,])
-    #browser()
-    met_mu[i,] <- p_mu(ST = cov) #Done sampling mu
+    mat_mu[i,] <- p_mu(ST = cov) 
+    #Done sampling mu
     
     ### SIGMA ###
     
@@ -153,25 +160,20 @@ met_gibbs <- function(its) {
         1, a = 0, mean = mat_sig[i-1,j], sd = sd_sig
       )
       
-      # if(j == 1){candidate_sig = 1}
-      # if(j == 2){candidate_sig = 4}
-      # if(j == 3){candidate_sig = 9}
-      
       cand.sig.vec <- diag(cov)
       cand.sig.vec[j] <- candidate_sig
       cov2 <- makeCov(mat_rho[i-1,], cand.sig.vec)
       
       ratio_sig <- 
-        ( p_sig(ST = cov2, sig_sq = candidate_sig, .mu = met_mu[i,]) - 
+        ( p_sig(ST = cov2, sig_sq = candidate_sig, .mu = mat_mu[i,]) - 
             propose_sig(candidate_sig, mn = cov[j,j]) ) - 
-        ( p_sig(ST = cov, sig_sq = cov[j,j], .mu = met_mu[i,]) - 
+        ( p_sig(ST = cov, sig_sq = cov[j,j], .mu = mat_mu[i,]) - 
             propose_sig(cov[j,j], mn = candidate_sig) )
       
-      pmove <- min(0, ratio_sig)
-      #if(is.na(pmove)) browser()
+      accept_prob <- min(0, ratio_sig)
       u <- log(runif(1))
       
-      if(u < pmove) {
+      if(u < accept_prob) {
         mat_sig[i,j] <- candidate_sig
         cov2[j,j] <- candidate_sig
         a_sig[j] <- a_sig[j] + 1
@@ -197,16 +199,15 @@ met_gibbs <- function(its) {
       cov3 <- makeCov(cand.rho.vec, mat_sig[i,])
       
       ratio_cov <- 
-        (p_rho(rho = candidate_rho, .mu = met_mu[i,], ST = cov3) -
+        (p_rho(rho = candidate_rho, .mu = mat_mu[i,], ST = cov3) -
            propose_rho(candidate_rho, mn = mat_rho[i-1,k])) -
-        (p_rho(rho = mat_rho[i-1,k], .mu = met_mu[i,], ST = cov) -
+        (p_rho(rho = mat_rho[i-1,k], .mu = mat_mu[i,], ST = cov) -
            propose_rho(mat_rho[i-1,k], mn = candidate_rho))
-      
-      #if(is.na(ratio_cov)) browser()
-      
-      pmove <- min(0, ratio_cov)
+      # Use log to evaluate acceptance
+
+      accept_prob <- min(0, ratio_cov)
       u <- log(runif(1))
-      if(u < pmove) {
+      if(u < accept_prob) {
         mat_rho[i,k] <- candidate_rho
         a_rho[k] <- a_rho[k] + 1
         cov <- cov3
@@ -218,6 +219,6 @@ met_gibbs <- function(its) {
       #browser()
     }
   }
-  list(met_mu, mat_sig, mat_rho, a_sig, a_rho, cov)
+  list(mat_mu, mat_sig, mat_rho, a_sig, a_rho, cov)
 }
 
