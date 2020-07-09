@@ -1,0 +1,23 @@
+---
+title: "Splines"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's say you want to fit a model using some wiggly data.  Maybe
+
+```{r cars}
+n<-300
+x<-seq(0,1,length.out=n)
+y<-sin(2*pi*x^2)*10+rnorm(n)
+plot(x,y)
+```
+
+One way to fit a model to data like this is to come up with a linear basis and fit a linear model using the basis as the X matrix (which we will call B).  People often use splines as a basis.  The simplist set of spline basis functions would be to make the ith basis function (i.e., the ith column of B) look like
+$$ B_{ij} = [s_i(x_j - t_i)]_+  $$
+where $s\in \lbrace -1,1 \rbrace$, which we'll call the sign, and $t$ is a value in the domain of $x$, which we will call a knot.  Also, $[a]_+ = max(0,a)$.
+
+Try some combinations of $s$ and $t$ to see what your basis functions look like, and what the corresponding linear model fit looks like (using the lm function or your Bayesian linear model code).  Try with different numbers of basis functions, also.
