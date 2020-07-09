@@ -1,0 +1,98 @@
+---
+title: "Introduction to Splines"
+author: "Andy Shen, Devin Francom"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's say you want to fit a model using some wiggly data.  Maybe
+
+```{r cars}
+set.seed(12)
+n<-300
+x<-seq(0,1,length.out=n)
+y<-sin(2*pi*x^2)*10+rnorm(n)
+plot(x,y)
+```
+
+One way to fit a model to data like this is to come up with a linear basis and fit a linear model using the basis as the X matrix (which we will call B).  People often use splines as a basis.  The simplest set of spline basis functions would be to make the ith basis function (i.e., the ith column of B) look like
+$$ B_{ij} = [s_i(x_j - t_i)]_+  $$
+where $s\in \lbrace -1,1 \rbrace$, which we'll call the sign, and $t$ is a value in the domain of $x$, which we will call a knot.  Also, $[a]_+ = max(0,a)$.
+
+Try some combinations of $s$ and $t$ to see what your basis functions look like, and what the corresponding linear model fit looks like (using the lm function or your Bayesian linear model code).  Try with different numbers of basis functions, also.
+
+\pagebreak
+
+
+
+# Using the `bs()` Function
+
+## 2 Knots (Expected)
+
+```{r}
+library(splines)
+df <- data.frame(y, x)
+m1 <- lm(y ~ bs(x, knots = c(0.5, 0.82)), data = df)
+pred <- predict(m1)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "blue")
+
+summary(m1)
+```
+
+\pagebreak
+
+## Too Many Knots
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = seq(0.1,1,by=0.05)), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+\pagebreak
+
+## 1 Knot
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = 0.7), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+
+summary(m2)
+```
+
+
+
+
+
+\pagebreak
+
+# Natural Splines
+
+
+```{r}
+m3 <- lm(y ~ ns(x, knots = c(0.5, 0.82)), data = df)
+pred <- predict(m3)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "purple")
+
+summary(m1)
+```
+
+
+
+
+
+
