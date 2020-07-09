@@ -13,7 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 Let's say you want to fit a model using some wiggly data.  Maybe
 
 ```{r cars}
-set.seed(12)
 n<-300
 x<-seq(0,1,length.out=n)
 y<-sin(2*pi*x^2)*10+rnorm(n)
@@ -29,7 +28,57 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 \pagebreak
 
 ```{r}
+t1 <- 0.5 #knot at 0.5
+s <- 1
+B1 <- rep(NA, length(x))
 
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+}
+mod <- lm(y ~ B1)
+summary(mod)
+
+cf <- mod$coefficients
+sq <- x
+hs <- (sq - t1)
+hs[sq < t1] <- 0
+yfit <- cf[1] + cf[2]*hs
+
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit, type = "l", lwd = 5, col="navy")
+```
+
+\  
+
+Add another knot
+
+```{r}
+t1 <- 0.5 #knot at 0.5
+t2 <- 0.85 #another knot at 0.85
+s <- 1
+B1 <- rep(NA, length(x))
+B2 <- B1
+
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+  B2[i] <- max(s * (x[i] - t2), 0)
+}
+mod <- lm(y ~ B1 + B2)
+summary(mod)
+
+cf <- mod$coefficients
+sq <- x
+
+hs1 <- (sq - t1)
+hs1[sq < t1] <- 0
+
+hs2 <- (sq - t2)
+hs2[sq < t2] <- 0
+
+yfit <- cf[1] + cf[2]*hs1 + cf[3]*hs2
+
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit, type = "l", lwd = 5, col="navy")
 ```
 
 
@@ -66,7 +115,7 @@ lines(x, pred, lwd = 5, col = "green")
 ## 1 Knot
 
 ```{r}
-m2 <- lm(y ~ bs(x, knots = 0.7), data = df)
+m2 <- lm(y ~ bs(x, knots = 0.5), data = df)
 pred <- predict(m2)
 
 plot(x,y)
