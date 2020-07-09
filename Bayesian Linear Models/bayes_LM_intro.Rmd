@@ -89,39 +89,9 @@ $$
 = (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
 $$
 
-## Full Conditional Distributions
+## Joint Posterior
 
-Multiplying the priors by the likelihood function, we get that:
-
-$$
-p(\sigma^2 \mid \cdot) \propto (\sigma^2)^{-\alpha-1} exp \bigg[-\frac{b}{\sigma^2} \bigg]
- (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
-$$
-
-$$
-= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{b}{\sigma^2}-\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
-$$
-
-$$
-= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
-$$
-
-For the full posterior distribution, we have that
-
-$$
-p(\boldsymbol \beta | \cdot) \propto exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
-$$
-
-
-$$
-\propto exp \bigg[ -\frac{1}{2 \tau^2 \sigma^2} \big [\sigma^2 \boldsymbol \beta'\boldsymbol \beta + \tau^2 (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \big] \bigg] 
-$$
-
-$$
-\propto exp \bigg[ -\frac{1}{2 \tau^2 \sigma^2} \big [\sigma^2 \boldsymbol \beta'\boldsymbol \beta + \tau^2 (\boldsymbol y' \boldsymbol y - 2 \boldsymbol \beta ' \mathbf X ' \boldsymbol y + \boldsymbol \beta ' \mathbf X ' \boldsymbol X \boldsymbol\beta) \big] \bigg]
-$$
-
-and 
+For the full posterior, we have that
 
 $$
 p(\boldsymbol \beta, \sigma^2 \mid \boldsymbol y, \boldsymbol X) \propto
@@ -140,26 +110,74 @@ $$
 exp \bigg[-\frac{b}{\sigma^2} \bigg] exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta \bigg] 
 exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
 $$
+The joint posterior distribution is effectively an inverse gamma distribution multiplied by two multivariate normal distributions. The full conditionals can also be derived from the joint posterior. \newline
 
+
+
+
+
+## Full Conditional Distributions
+
+### Sigma^2
+
+Multiplying the priors by the likelihood function, or looking at the joint posterior, we get that:
 
 $$
-p(\boldsymbol \beta, \sigma^2 \mid \boldsymbol y, \boldsymbol X)
-\propto (\sigma^2)^{-(\frac{n}{2} + \alpha + 1)}(\tau^2)^{-\frac{p}{2}} 
-exp \bigg[-\frac{b}{\sigma^2} \bigg] exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta \bigg] 
-exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
+p(\sigma^2 \mid \cdot) \propto (\sigma^2)^{-\alpha-1} exp \bigg[-\frac{b}{\sigma^2} \bigg]
+ (\sigma^2) ^ {-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
 $$
 
+$$
+= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{b}{\sigma^2}-\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ]
+$$
 
-The joint posterior distribution is effectively an inverse gamma distribution multiplied by two multivariate normal distributions.\newline
+$$
+= (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
+$$
 
-
-From these results, we get that:
+Therefore we have that
 
 $$
 \sigma^2 \mid \cdot \sim IG\bigg(\alpha + \frac{n}{2}, ~~\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg)
 $$
 
-and
+\pagebreak
+
+### Beta
+
+For the full conditional of $\boldsymbol\beta$, we have that
+
+$$
+p(\boldsymbol \beta | \cdot) \propto exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
+$$
+
+
+$$
+\propto exp \bigg[ -\frac{1}{2 \tau^2 \sigma^2} \big [\sigma^2 \boldsymbol \beta'\boldsymbol \beta + \tau^2 (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \big] \bigg] 
+$$
+
+
+$$
+\propto exp \bigg[ -\frac{1}{2 \tau^2 \sigma^2} \big [\sigma^2 \boldsymbol \beta'\boldsymbol \beta + \tau^2 (\boldsymbol y' \boldsymbol y - 2 \boldsymbol \beta ' \mathbf X ' \boldsymbol y + \boldsymbol \beta ' \mathbf X ' \mathbf X \boldsymbol\beta) \big] \bigg]
+$$
+
+$$
+\propto exp \bigg[ -\frac{1}{2 \tau^2 \sigma^2} \big [ \boldsymbol \beta'(\sigma^2 \boldsymbol I + \mathbf X ' \mathbf X)\boldsymbol \beta - 2 \boldsymbol \beta ' \mathbf X ' \boldsymbol y \big] \bigg]
+$$
+
+which we set proportional to
+
+$$
+\begin{aligned}
+&\propto exp\bigg[-\frac{1}{2\sigma^2_{\beta}}(\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta})' ~ \boldsymbol\Sigma_{\boldsymbol\beta}^{-1} ~ (\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta})\bigg]\\
+&\propto exp \bigg[ -\frac{1}{2\sigma^2_{\beta}}\big[  \boldsymbol \beta' \boldsymbol\Sigma_{\boldsymbol\beta}^{-1}\boldsymbol \beta - 2\boldsymbol\beta'\boldsymbol\Sigma_{\boldsymbol\beta}^{-1}\boldsymbol\mu_{\boldsymbol\beta}\big]\bigg]
+\end{aligned}
+$$
+
+
+
+
+From these results, we get that
 
 $$
 \boldsymbol\beta \mid \cdot \sim \mathcal{N}\bigg\lbrace\bigg(\boldsymbol{X'X} + \frac{\sigma^2}{\tau^2}\boldsymbol I~\bigg)^{-1}\boldsymbol{X'y}, \bigg(\frac{1}{\sigma^2}(\boldsymbol{X'X}) + \frac{1}{\tau^2}\boldsymbol I~\bigg)^{-1}\bigg\rbrace
@@ -184,41 +202,22 @@ p <- ncol(X) - 1# p = 11, p + 1 = 12
 ## Sigma
 
 $$
-p(\sigma^2 \mid \cdot) \propto (\sigma^2)^{-\alpha - 1 - \frac{n}{2}} exp \bigg[-\frac{1}{\sigma^2} \bigg(\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg) \bigg]
-$$
-
-$$
 \sigma^2 \mid \cdot \sim IG\bigg(\alpha + \frac{n}{2}, ~~\frac{2b + (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta})}{2}\bigg)
 $$
 
 We code the full conditional of $\sigma^2$ as follows:
 
 ```{r}
-p_sig <- function(a = 1, b = 1, n = nrow(X), beta) {
+p_sig <- function(a = 0, b = 0, n = nrow(X), beta) {
   a_term <- a + (n/2)
   b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta)))) #y, X defined above
-  1 / rgamma(1, shape = a_term, rate = 1/b_term)
+  1 / rgamma(1, shape = a_term, rate = b_term)
 }
 ```
 
 ## Beta
 
 The full conditional distribution of $\boldsymbol \beta$ is effectively the product of two multivariate normal distributions.
-
-$$
-p(\boldsymbol \beta | \cdot) \propto exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
-$$
-
-$$
-\propto ({\tau^2})^{-\frac{p}{2}} exp \bigg[ -\frac{1}{2\tau^2} \boldsymbol \beta'\boldsymbol \beta \bigg] 
-(\sigma^2)^{-\frac{n}{2}} exp \bigg [ -\frac{1}{2 \sigma^2} (\boldsymbol y - \boldsymbol{X\beta})' (\boldsymbol y - \boldsymbol{X\beta}) \bigg ] 
-$$
-
-which is proportional to
-
-$$
-\propto exp((\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta})' ~ \boldsymbol\Sigma_{\boldsymbol\beta}^{-1} ~ (\boldsymbol\beta - \boldsymbol\mu_{\boldsymbol\beta}))
-$$
 
 After solving for the values of $\mu_{\beta}$ and $\boldsymbol \Sigma_{\beta}$, we get that
 
@@ -232,12 +231,14 @@ The code for the full conditional distribution of $\boldsymbol \beta$ is as foll
 
 ```{r}
 library(mvtnorm)
-p_beta <- function(sig_sq, tau_sq = 1, p = ncol(X)) {
-  sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p) ) 
+p_beta <- function(sig_sq, tau_sq = 100, p = ncol(X)-1) {
+  sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
   mu <- (1/sig_sq) * sig %*% t(X) %*% y
   rmvnorm(1, mean = mu, sigma = sig)
 }
 ```
+
+\pagebreak
 
 ## Gibbs Sampler
 
@@ -257,11 +258,13 @@ gibbs <- function(its) {
 
 its <- 1000
 a <- gibbs(its = its)
-mat_beta <- a[[1]]
-mat_sig <- a[[2]]
+mat_beta <- a[[1]] #beta values
+mat_sig <- a[[2]] #sig^2 values
 ```
 
+\pagebreak
 
+## Results
 
 
 ```{r}
@@ -269,8 +272,9 @@ matplot(mat_beta, type = "l", main = "Plot of Beta vs. Iterations")
 plot(mat_sig, type = "l", main = "Plot of sigma^2 vs. Iterations")
 ```
 
+\  
 
-We know that:
+Thanks to Stats 100C, we know that:
 
 $$
 s^2 = \frac{S(\hat{\boldsymbol\beta})}{n - p - 1}
@@ -280,19 +284,38 @@ $$
 mod <- lm(y ~ 0 + X)
 res <- mod$residuals
 S_beta <- t(res) %*% res
-s_sq <- S_beta / (n - p - 1)#or just 1000 - 12
+s_sq <- S_beta / (n - p - 1) #or just 1000 - 12
 s_sq[,,drop = TRUE]
 mean(mat_sig)
 ```
 
+\  
+
+Our sampled $\sigma^2$ values closely match the results from the frequentist `lm()` command.
+
+Alternatively, $s^2$ can be found with
 
 ```{r}
-colMeans(mat_beta)
-mod$coefficients 
+(summary(mod)$sigma)^2
+```
+
+\  
+
+The data frame below shows our sampled values of $\boldsymbol\beta$ vs. the output from `lm()`.
+
+```{r}
+beta_df <- data.frame(
+  "bayesian_vals" = colMeans(mat_beta),
+  "freq_vals" = mod$coefficients
+)
+beta_df
 ```
 
 
-
+```{r}
+confint(mod) # frequentist confidence interval
+t(apply(mat_beta, 2, quantile, probs=c(.025, 0.975))) #bayesian credible interval
+```
 
 
 
