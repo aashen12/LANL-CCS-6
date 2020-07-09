@@ -1,4 +1,4 @@
-dat<-read.csv('Desktop/data.csv')
+dat<-read.csv('data.csv')
 y<-dat$y
 X<-as.matrix(cbind(1,dat[,-c(1,2)]))
 library(mnormt)
