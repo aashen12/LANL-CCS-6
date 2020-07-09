@@ -28,6 +28,9 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 
 \pagebreak
 
+```{r}
+
+```
 
 
 # Using the `bs()` Function
