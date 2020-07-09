@@ -103,7 +103,7 @@ summary(m1)
 ## Too Many Knots
 
 ```{r}
-m2 <- lm(y ~ bs(x, knots = seq(0.1,1,by=0.05)), data = df)
+m2 <- lm(y ~ bs(x, knots = seq(0.1,1,by=0.02)), data = df)
 pred <- predict(m2)
 
 plot(x,y)
@@ -116,6 +116,16 @@ lines(x, pred, lwd = 5, col = "green")
 
 ```{r}
 m2 <- lm(y ~ bs(x, knots = 0.5), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+
+summary(m2)
+```
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = 0.8), data = df)
 pred <- predict(m2)
 
 plot(x,y)
