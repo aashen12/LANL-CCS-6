@@ -33,22 +33,22 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 generate_spline <- function(tvec, s = 1, y, x, nknot = length(tvec)) {
   Bmat <- matrix(NA, nknot, length(x))
   hs <- Bmat
+  
   for(i in 1:nknot) {
     for(j in 1:length(x)) {
       Bmat[i,j] <- max(s * (x[j] - tvec[i]), 0)
-    }
+    } #creating basis
   }
   
   mBmat <- t(Bmat)
-  
   mod <- lm(y ~ x + mBmat)
   pred <- predict(mod)
-  sq <- x
   
+  sq <- x
   for(ii in 1:nknot) {
     hs[ii,] <- sq - tvec[ii]
     hs[ii,][sq < tvec[ii]] <- 0
-  }
+  } #setting x values
   
   plot(x,y, main = "Manual Basis Spline")
   lines(x, pred, type = "l", lwd = 5, col="blue1")
