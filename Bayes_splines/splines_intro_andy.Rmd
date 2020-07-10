@@ -27,6 +27,45 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 
 \pagebreak
 
+# Manual Spline Function
+
+```{r}
+generate_spline <- function(tvec, s = 1, y, x, nknot = length(tvec)) {
+  Bmat <- matrix(NA, nknot, length(x))
+  hs <- Bmat
+  for(i in 1:nknot) {
+    for(j in 1:length(x)) {
+      Bmat[i,j] <- max(s * (x[j] - tvec[i]), 0)
+    }
+  }
+  
+  mBmat <- t(Bmat)
+  
+  mod <- lm(y ~ x + mBmat)
+  pred <- predict(mod)
+  sq <- x
+  
+  for(ii in 1:nknot) {
+    hs[ii,] <- sq - tvec[ii]
+    hs[ii,][sq < tvec[ii]] <- 0
+  }
+  
+  plot(x,y, main = "Manual Basis Spline")
+  lines(x, pred, type = "l", lwd = 5, col="blue1")
+}
+
+```
+
+
+```{r}
+tv <- c(0.525, 0.865)
+generate_spline(tv, y = y, x = x)
+```
+
+\pagebreak
+
+# Trying things out
+
 ```{r}
 t1 <- 0.5 #knot at 0.5
 s <- 1
@@ -35,14 +74,14 @@ B1 <- rep(NA, length(x))
 for(i in 1:length(x)) {
   B1[i] <- max(s * (x[i] - t1), 0)
 }
-mod <- lm(y ~ B1)
+mod <- lm(y ~ x + B1)
 summary(mod)
 
 cf <- mod$coefficients
 sq <- x
-hs <- (sq - t1)
+hs <- sq - t1
 hs[sq < t1] <- 0
-yfit <- cf[1] + cf[2]*hs
+yfit <- cf[1] + cf[2]*x + cf[3]*hs
 
 plot(x,y, main = "Manual Basis Spline")
 lines(x, yfit, type = "l", lwd = 5, col="navy")
@@ -53,8 +92,8 @@ lines(x, yfit, type = "l", lwd = 5, col="navy")
 Add another knot
 
 ```{r}
-t1 <- 0.5 #knot at 0.5
-t2 <- 0.85 #another knot at 0.85
+t1 <- 0.515 
+t2 <- 0.865 
 s <- 1
 B1 <- rep(NA, length(x))
 B2 <- B1
@@ -63,39 +102,94 @@ for(i in 1:length(x)) {
   B1[i] <- max(s * (x[i] - t1), 0)
   B2[i] <- max(s * (x[i] - t2), 0)
 }
-mod <- lm(y ~ B1 + B2)
+mod <- lm(y ~ x + B1 + B2)
+
+cf <- mod$coefficients
+sq <- x
+hs1 <- sq - t1
+hs1[sq < t1] <- 0
+
+hs2 <- sq - t2
+hs2[sq < t2] <- 0
+
+yfit <- cf[1] + cf[2]*x + cf[3]*hs1 + cf[4]*hs2
+yfit2 <- predict(mod) #same thing 
+
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit2, type = "l", lwd = 5, col="red")
+```
+
+\  
+
+Add another knot:
+
+```{r}
+t1 <- 0.5 #knot at 0.5
+t2 <- 0.85 #another knot at 0.85
+t3 <- 0.7
+s <- 1
+B1 <- rep(NA, length(x))
+B3 <- B2 <- B1
+
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+  B2[i] <- max(s * (x[i] - t2), 0)
+  B3[i] <- max(s * (x[i] - t3), 0)
+}
+mod <- lm(y ~ x + B1 + B2 + B3)
 summary(mod)
 
 cf <- mod$coefficients
 sq <- x
 
-hs1 <- (sq - t1)
+hs1 <- sq - t1
 hs1[sq < t1] <- 0
 
-hs2 <- (sq - t2)
+hs2 <- sq - t2
 hs2[sq < t2] <- 0
 
-yfit <- cf[1] + cf[2]*hs1 + cf[3]*hs2
+hs3 <- sq - t3
+hs3[sq < t3] <- 0
 
+yfit2 <- cf[1] + cf[2]*x + cf[3]*hs1 + cf[4]*hs2 + cf[5]*hs3
+yfit <- predict(mod)
 plot(x,y, main = "Manual Basis Spline")
 lines(x, yfit, type = "l", lwd = 5, col="navy")
 ```
 
+\pagebreak
 
 # Using the `bs()` Function
 
-## 2 Knots (Expected)
+## 1 Knot
 
 ```{r}
 library(splines)
 df <- data.frame(y, x)
+m2 <- lm(y ~ bs(x, knots = 0.5), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = 0.8), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+## 2 Knots (Expected)
+
+```{r}
 m1 <- lm(y ~ bs(x, knots = c(0.5, 0.82)), data = df)
 pred <- predict(m1)
 
 plot(x,y)
 lines(x, pred, lwd = 5, col = "blue")
 
-summary(m1)
 ```
 
 \pagebreak
@@ -109,33 +203,6 @@ pred <- predict(m2)
 plot(x,y)
 lines(x, pred, lwd = 5, col = "green")
 ```
-
-\pagebreak
-
-## 1 Knot
-
-```{r}
-m2 <- lm(y ~ bs(x, knots = 0.5), data = df)
-pred <- predict(m2)
-
-plot(x,y)
-lines(x, pred, lwd = 5, col = "green")
-
-summary(m2)
-```
-
-```{r}
-m2 <- lm(y ~ bs(x, knots = 0.8), data = df)
-pred <- predict(m2)
-
-plot(x,y)
-lines(x, pred, lwd = 5, col = "green")
-
-summary(m2)
-```
-
-
-
 
 
 \pagebreak
