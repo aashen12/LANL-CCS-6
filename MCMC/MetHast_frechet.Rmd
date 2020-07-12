@@ -99,14 +99,14 @@ r_frechet <- function(start = 0, n = 10000, alpha = 1, s = 1, m = 0) {
     current <- values[i-1]
     y <- rtruncnorm(1, a = 0, mean = current, sd = 6.32)
     
-    pmove <- min(
+    accept_prob <- min(
       0, (p(y) - propose(y, current)) - ((p(current) - propose(current, y)))
     )
     
     #if(i > 5000) browser()
     
     u <- log(runif(1))
-    if(u < pmove) {
+    if(u < accept_prob) {
       values[i] <- y
       a <- a + 1
     }
@@ -190,9 +190,9 @@ mh_norm <- function(start = -30, n = 10000) {
   a = 0
   for(i in 2:n) {
     y <- runif(1, values[i-1]-1, values[i-1]+1)
-    pmove <- min(1, (p(y)/p(values[i-1]))) #* (propose(values[i-1]) / propose(y)))
+    accept_prob <- min(1, (p(y)/p(values[i-1]))) #* (propose(values[i-1]) / propose(y)))
     u <- runif(1)
-    if(u < pmove) {
+    if(u < accept_prob) {
       values[i] <- y
       a <- a + 1
     }
