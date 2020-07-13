@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Let's say you want to fit a model using some wiggly data.  Maybe
 
 ```{r cars}
+set.seed(12)
 n<-300
 x<-seq(0,1,length.out=n)
 y<-sin(2*pi*x^2)*10+rnorm(n)
@@ -27,40 +28,130 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 
 \pagebreak
 
-# Manual Spline Function
+
+# 1 Manual Frequentist Spline Function
 
 ```{r}
-generate_spline <- function(tvec, s = 1, y, x, nknot = length(tvec)) {
+generate_spline <- function(tvec, y, x, nknot = length(tvec)) {
+  s <- sample(c(1), nknot, replace = TRUE)
   Bmat <- matrix(NA, nknot, length(x))
   hs <- Bmat
   
   for(i in 1:nknot) {
     for(j in 1:length(x)) {
-      Bmat[i,j] <- max(s * (x[j] - tvec[i]), 0)
+      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
     } #creating basis
   }
   
   mBmat <- t(Bmat)
-  mod <- lm(y ~ x + mBmat)
+  mod <- lm(y ~ mBmat) #use gibbs to sample coefs in bayes
   pred <- predict(mod)
   
   sq <- x
   for(ii in 1:nknot) {
-    hs[ii,] <- sq - tvec[ii]
-    hs[ii,][sq < tvec[ii]] <- 0
+    if(s[i] == 1) {
+      hs[ii,] <- sq - tvec[ii]
+      hs[ii,][sq < tvec[ii]] <- 0
+    }
+    else {
+      hs[ii,] <- -1*(sq - tvec[ii])
+      hs[ii,][sq < tvec[ii]] <- 0
+    }
   } #setting x values
   
   plot(x,y, main = "Manual Basis Spline")
   lines(x, pred, type = "l", lwd = 5, col="blue1")
+  summary(mod)
 }
 
 ```
 
-
 ```{r}
-tv <- c(0.525, 0.865) #vector of t-values
+tv <- c(0, 0.525, 0.865) #vector of t-values
 generate_spline(tv, y = y, x = x)
 ```
+
+\pagebreak
+
+# 2 Bayesian Spline
+
+```{r}
+library(mvtnorm)
+bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
+  s <- sample(c(1), nknot, replace = TRUE)
+  Bmat <- matrix(NA, nknot, length(x))
+  hs <- Bmat
+  
+  for(i in 1:nknot) {
+    for(j in 1:length(x)) {
+      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
+    } #creating basis
+  }
+  
+  X <- t(Bmat)
+  X <- cbind(1, X)
+  
+  p_sig <- function(a = 0, b = 0, n = nrow(X), beta) {
+    a_term <- a + (n/2)
+    b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta)))) #y, X defined above
+    1 / rgamma(1, shape = a_term, rate = b_term)
+  }
+  
+  p_beta <- function(sig_sq, tau_sq = 100, p = ncol(X)-1) {
+    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
+    mu <- (1/sig_sq) * sig %*% t(X) %*% y
+    rmvnorm(1, mean = mu, sigma = sig)
+  }
+  
+  
+  gibbs <- function(its) {
+    mat_beta <- matrix(NA, its, ncol(X))
+    mat_sig <- rep(NA, its)
+    mat_sig[1] <- 0.01
+    mat_beta[1,] <- rep(0, ncol(X))
+    for(it in 2:its) {
+      mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1])
+      mat_sig[it] <- p_sig(beta = mat_beta[it,])
+    }
+    list(mat_beta, mat_sig)
+  }
+
+  its <- 3000
+  a <- gibbs(its = its)
+  mat_beta <- a[[1]] #beta values
+  mat_sig <- a[[2]] #sig^2 values  
+  
+  sq <- x
+  for(ii in 1:nknot) {
+    if(s[i] == 1) {
+      hs[ii,] <- sq - tvec[ii]
+      hs[ii,][sq < tvec[ii]] <- 0
+    }
+    else {
+      hs[ii,] <- -1*(sq - tvec[ii])
+      hs[ii,][sq > tvec[ii]] <- 0
+    }
+  } #setting x values
+  
+  list(mat_beta, mat_sig)
+}
+mat_beta <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)[[1]]
+mat_sig <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)[[2]]
+```
+
+```{r}
+matplot(mat_beta, type = "l", main = "Sampled Model Coefficients")
+plot(mat_sig, type = "l", main = "Sampled sigma^2 values")
+```
+
+
+```{r}
+burn <- 1:15
+colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
+mean(mat_sig[-burn]) #target: 1.46
+```
+
+
 
 \pagebreak
 
@@ -92,7 +183,7 @@ lines(x, yfit, type = "l", lwd = 5, col="navy")
 Add another knot
 
 ```{r}
-t1 <- 0.515 
+t1 <- 0.525 
 t2 <- 0.865 
 s <- 1
 B1 <- rep(NA, length(x))
@@ -102,7 +193,7 @@ for(i in 1:length(x)) {
   B1[i] <- max(s * (x[i] - t1), 0)
   B2[i] <- max(s * (x[i] - t2), 0)
 }
-mod <- lm(y ~ x + B1 + B2)
+mod <- lm(y ~ B1 + B2)
 
 cf <- mod$coefficients
 sq <- x
@@ -119,14 +210,14 @@ plot(x,y, main = "Manual Basis Spline")
 lines(x, yfit2, type = "l", lwd = 5, col="red")
 ```
 
-\  
+\pagebreak
 
-Add another knot:
+## Add another knot (expected)
 
 ```{r}
-t1 <- 0.5 #knot at 0.5
-t2 <- 0.85 #another knot at 0.85
-t3 <- 0.7
+t1 <- 0 #knot at 0.5
+t2 <- 0.525 #another knot at 0.85
+t3 <- 0.865
 s <- 1
 B1 <- rep(NA, length(x))
 B3 <- B2 <- B1
@@ -136,7 +227,7 @@ for(i in 1:length(x)) {
   B2[i] <- max(s * (x[i] - t2), 0)
   B3[i] <- max(s * (x[i] - t3), 0)
 }
-mod <- lm(y ~ x + B1 + B2 + B3)
+mod <- lm(y ~ B1 + B2 + B3)
 summary(mod)
 
 cf <- mod$coefficients
