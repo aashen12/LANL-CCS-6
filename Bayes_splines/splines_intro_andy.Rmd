@@ -40,7 +40,7 @@ generate_spline <- function(tvec, y, x, nknot = length(tvec)) {
   for(i in 1:nknot) {
     for(j in 1:length(x)) {
       Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
-    } #creating basis
+    } #creating basis functions
   }
   
   mBmat <- t(Bmat)
@@ -86,7 +86,7 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
     for(j in 1:length(x)) {
       Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
     } #creating basis
-  }
+  } #X Matrix
   
   X <- t(Bmat)
   X <- cbind(1, X)
