@@ -1,0 +1,320 @@
+---
+title: "Introduction to Splines"
+author: "Andy Shen, Devin Francom"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's say you want to fit a model using some wiggly data.  Maybe
+
+```{r cars}
+set.seed(12)
+n<-300
+x<-seq(0,1,length.out=n)
+y<-sin(2*pi*x^2)*10+rnorm(n)
+plot(x,y)
+```
+
+One way to fit a model to data like this is to come up with a linear basis and fit a linear model using the basis as the X matrix (which we will call B).  People often use splines as a basis.  The simplest set of spline basis functions would be to make the ith basis function (i.e., the ith column of B) look like
+$$ B_{ij} = [s_i(x_j - t_i)]_+  $$
+where $s\in \lbrace -1,1 \rbrace$, which we'll call the sign, and $t$ is a value in the domain of $x$, which we will call a knot.  Also, $[a]_+ = max(0,a)$.
+
+Try some combinations of $s$ and $t$ to see what your basis functions look like, and what the corresponding linear model fit looks like (using the lm function or your Bayesian linear model code).  Try with different numbers of basis functions, also.
+
+\pagebreak
+
+
+# 1 Manual Frequentist Spline Function
+
+```{r}
+generate_spline <- function(tvec, y, x, nknot = length(tvec)) {
+  s <- sample(c(1), nknot, replace = TRUE)
+  Bmat <- matrix(NA, nknot, length(x))
+  hs <- Bmat
+  
+  for(i in 1:nknot) {
+    for(j in 1:length(x)) {
+      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
+    } #creating basis functions
+  }
+  
+  mBmat <- t(Bmat)
+  mod <- lm(y ~ mBmat) #use gibbs to sample coefs in bayes
+  pred <- predict(mod)
+  
+  sq <- x
+  for(ii in 1:nknot) {
+    if(s[i] == 1) {
+      hs[ii,] <- sq - tvec[ii]
+      hs[ii,][sq < tvec[ii]] <- 0
+    }
+    else {
+      hs[ii,] <- -1*(sq - tvec[ii])
+      hs[ii,][sq < tvec[ii]] <- 0
+    }
+  } #setting x values
+  
+  plot(x,y, main = "Manual Basis Spline")
+  lines(x, pred, type = "l", lwd = 5, col="blue1")
+  summary(mod)
+}
+
+```
+
+```{r}
+tv <- c(0, 0.525, 0.865) #vector of t-values
+generate_spline(tv, y = y, x = x)
+```
+
+\pagebreak
+
+# 2 Bayesian Spline
+
+```{r}
+library(mvtnorm)
+bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
+  s <- sample(c(1), nknot, replace = TRUE)
+  Bmat <- matrix(NA, nknot, length(x))
+  hs <- Bmat
+  
+  for(i in 1:nknot) {
+    for(j in 1:length(x)) {
+      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
+    } #creating basis
+  } #X Matrix
+  
+  X <- t(Bmat)
+  X <- cbind(1, X)
+  
+  p_sig <- function(a = 0, b = 0, n = nrow(X), beta) {
+    a_term <- a + (n/2)
+    b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta)))) #y, X defined above
+    1 / rgamma(1, shape = a_term, rate = b_term)
+  }
+  
+  p_beta <- function(sig_sq, tau_sq = 100, p = ncol(X)-1) {
+    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
+    mu <- (1/sig_sq) * sig %*% t(X) %*% y
+    rmvnorm(1, mean = mu, sigma = sig)
+  }
+  
+  gibbs <- function(its) {
+    mat_beta <- matrix(NA, its, ncol(X))
+    mat_sig <- rep(NA, its)
+    mat_sig[1] <- 0.01
+    mat_beta[1,] <- rep(0, ncol(X))
+    for(it in 2:its) {
+      mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1])
+      mat_sig[it] <- p_sig(beta = mat_beta[it,])
+    }
+    list(mat_beta, mat_sig)
+  }
+
+  its <- 3000
+  a <- gibbs(its = its)
+  mat_beta <- a[[1]] #beta values
+  mat_sig <- a[[2]] #sig^2 values  
+  
+  list(mat_beta, mat_sig, X)
+}
+bayesian <- bayes_spline(seq(0,1,by=.01), y = y, x = x)
+mat_beta <- bayesian[[1]]
+mat_sig <- bayesian[[2]]
+X <- bayesian[[3]]
+burn <- 1:15
+colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
+mean(mat_sig[-burn]) #target: 1.46
+```
+
+```{r}
+matplot(x, X %*% t(mat_beta[-burn,]), type = "l")
+points(x,y)
+```
+
+
+```{r}
+matplot(mat_beta, type = "l", main = "Sampled Model Coefficients")
+plot(mat_sig, type = "l", main = "Sampled sigma^2 values")
+```
+
+
+```{r}
+mean.pred<-X %*% t(mat_beta[-burn,])
+pred<-t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig[-burn]))
+hist(X[100,]%*%t(mat_beta[-burn,]) + rnorm(2985,sd=sqrt(mat_sig[-burn])))
+matplot(x,t(pred),type='l',col='lightgrey')
+matplot(x,mean.pred,type='l',col='green',add=T)
+points(x,y)
+lines(x,X[,1:99]%*%lm(y~X[,1:99]-1)$coef,col=4)
+```
+
+
+
+\pagebreak
+
+# Trying things out
+
+```{r}
+t1 <- 0.5 #knot at 0.5
+s <- 1
+B1 <- rep(NA, length(x))
+
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+}
+mod <- lm(y ~ x + B1)
+summary(mod)
+
+cf <- mod$coefficients
+sq <- x
+hs <- sq - t1
+hs[sq < t1] <- 0
+yfit <- cf[1] + cf[2]*x + cf[3]*hs
+
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit, type = "l", lwd = 5, col="navy")
+```
+
+\  
+
+Add another knot
+
+```{r}
+t1 <- 0.525 
+t2 <- 0.865 
+s <- 1
+B1 <- rep(NA, length(x))
+B2 <- B1
+
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+  B2[i] <- max(s * (x[i] - t2), 0)
+}
+mod <- lm(y ~ B1 + B2)
+
+cf <- mod$coefficients
+sq <- x
+hs1 <- sq - t1
+hs1[sq < t1] <- 0
+
+hs2 <- sq - t2
+hs2[sq < t2] <- 0
+
+yfit <- cf[1] + cf[2]*x + cf[3]*hs1 + cf[4]*hs2
+yfit2 <- predict(mod) #same thing 
+
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit2, type = "l", lwd = 5, col="red")
+```
+
+\pagebreak
+
+## Add another knot (expected)
+
+```{r}
+t1 <- 0 #knot at 0.5
+t2 <- 0.525 #another knot at 0.85
+t3 <- 0.865
+s <- 1
+B1 <- rep(NA, length(x))
+B3 <- B2 <- B1
+
+for(i in 1:length(x)) {
+  B1[i] <- max(s * (x[i] - t1), 0)
+  B2[i] <- max(s * (x[i] - t2), 0)
+  B3[i] <- max(s * (x[i] - t3), 0)
+}
+mod <- lm(y ~ B1 + B2 + B3)
+summary(mod)
+
+cf <- mod$coefficients
+sq <- x
+
+hs1 <- sq - t1
+hs1[sq < t1] <- 0
+
+hs2 <- sq - t2
+hs2[sq < t2] <- 0
+
+hs3 <- sq - t3
+hs3[sq < t3] <- 0
+
+yfit2 <- cf[1] + cf[2]*x + cf[3]*hs1 + cf[4]*hs2 + cf[5]*hs3
+yfit <- predict(mod)
+plot(x,y, main = "Manual Basis Spline")
+lines(x, yfit, type = "l", lwd = 5, col="navy")
+```
+
+\pagebreak
+
+# Using the `bs()` Function
+
+## 1 Knot
+
+```{r}
+library(splines)
+df <- data.frame(y, x)
+m2 <- lm(y ~ bs(x, knots = 0.5), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = 0.8), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+## 2 Knots (Expected)
+
+```{r}
+m1 <- lm(y ~ bs(x, knots = c(0.525, 0.865)), data = df)
+pred <- predict(m1)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "blue")
+
+```
+
+\pagebreak
+
+## Too Many Knots
+
+```{r}
+m2 <- lm(y ~ bs(x, knots = seq(0.1,1,by=0.02)), data = df)
+pred <- predict(m2)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "green")
+```
+
+
+\pagebreak
+
+# Natural Splines
+
+
+```{r}
+m3 <- lm(y ~ ns(x, knots = c(0.5, 0.82)), data = df)
+pred <- predict(m3)
+
+plot(x,y)
+lines(x, pred, lwd = 5, col = "purple")
+
+summary(m1)
+```
+
+
+
+
+
+
