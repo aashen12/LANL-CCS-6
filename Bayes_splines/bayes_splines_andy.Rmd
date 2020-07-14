@@ -77,6 +77,7 @@ generate_spline(tv, y = y, x = x)
 
 ```{r}
 library(mvtnorm)
+
 bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
   s <- sample(c(1), nknot, replace = TRUE)
   Bmat <- matrix(NA, nknot, length(x))
@@ -97,7 +98,7 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
     1 / rgamma(1, shape = a_term, rate = b_term)
   }
   
-  p_beta <- function(sig_sq, tau_sq = 100, p = ncol(X)-1) {
+  p_beta <- function(sig_sq, tau_sq = 1000, p = ncol(X)-1) {
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     rmvnorm(1, mean = mu, sigma = sig)
@@ -122,7 +123,8 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
   
   list(mat_beta, mat_sig, X)
 }
-bayesian <- bayes_spline(seq(0,1,by=.01), y = y, x = x)
+
+bayesian <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)
 mat_beta <- bayesian[[1]]
 mat_sig <- bayesian[[2]]
 X <- bayesian[[3]]
@@ -131,26 +133,104 @@ colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
 mean(mat_sig[-burn]) #target: 1.46
 ```
 
+
 ```{r}
-matplot(x, X %*% t(mat_beta[-burn,]), type = "l")
+mean.pred <- X %*% t(mat_beta)
+matplot(x, mean.pred, type = "l")
 points(x,y)
 ```
 
 
 ```{r}
+# pred <- t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig)) #mean: X %*% beta
+# hist(X[100,] %*% t(mat_beta) + rnorm(2985,sd=sqrt(mat_sig))) #prediction
+# matplot(x,t(pred), type='l', col='lightgrey')
+# matplot(x,mean.pred, type='l', col='green', add=T)
+# points(x,y)
+```
+
+\pagebreak
+
+# 3 Bayesian Spline with Random Knots
+
+```{r}
+library(mvtnorm)
+
+mcmc_spline <- function(nknot = 5) {
+  
+  p_t <- function(sig_sq, beta) {
+    (-1/(2*sig_sq)) * t(y - (X %*% beta)) %*% (y - (X %*% beta))
+  }
+  
+  p_sig <- function(a = 0, b = 0, n = nrow(X), beta) {
+    a_term <- a + (n/2)
+    b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta)))) #y, X defined above
+    1 / rgamma(1, shape = a_term, rate = b_term)
+  }
+  
+  p_beta <- function(sig_sq, tau_sq = 1000, p = ncol(X)-1) {
+    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
+    mu <- (1/sig_sq) * sig %*% t(X) %*% y
+    rmvnorm(1, mean = mu, sigma = sig)
+  }
+  
+  met_gibbs <- function(its) {
+    
+    mat_t <- matrix(NA, its, nknot)
+    mat_beta <- matrix(NA, its, ncol(X))
+    mat_sig <- rep(NA, its, )
+    
+    mat_t[1,] <- rep(0, nknot)
+    mat_sig[1] <- 0.01
+    mat_beta[1,] <- rep(0, ncol(X))
+    Bmat <- matrix(NA, nknot, length(x))
+    
+    ar <- 0
+    for(it in 2:its) {
+      propose_t <- function(x, prev, curr) {
+        log(dunif(x, min = prev, max = curr))
+      }
+    
+      candidate_t <- runif(5, mat_t[its-1,]-1, mat_t[its-1,]+1)
+      
+      ### CREATE BASIS FUNCTIONS FROM THIS t-vector  ###
+      
+      s <- sample(c(1), nknot, replace = TRUE)
+      
+      for(i in 1:nknot) {
+        for(j in 1:length(x)) {
+          Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
+        } #creating basis
+      } #X Matrix
+      
+      X <- t(Bmat)
+      X <- cbind(1, X)
+      
+      
+      
+      mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1])
+      mat_sig[it] <- p_sig(beta = mat_beta[it,])
+    }
+    list(mat_beta, mat_sig)
+  }
+
+  its <- 3000
+  a <- met_gibbs(its = its)
+  mat_beta <- a[[1]] #beta values
+  mat_sig <- a[[2]] #sig^2 values  
+  
+  list(mat_beta, mat_sig, X)
+}
+
+burn <- 1:15
+bayesian <- bayes_spline(seq(0,1,by=.1), y = y, x = x)
+
+mat_beta <- bayesian[[1]][-burn,]
+mat_sig <- bayesian[[2]][-burn]
+X <- bayesian[[3]]
+
+colMeans(mat_beta) #target: -1.83, 25.19, -91.23, 135.03
+mean(mat_sig) #target: 1.46
 matplot(mat_beta, type = "l", main = "Sampled Model Coefficients")
 plot(mat_sig, type = "l", main = "Sampled sigma^2 values")
 ```
-
-
-```{r}
-mean.pred<-X %*% t(mat_beta[-burn,])
-pred<-t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig[-burn]))
-hist(X[100,]%*%t(mat_beta[-burn,]) + rnorm(2985,sd=sqrt(mat_sig[-burn])))
-matplot(x,t(pred),type='l',col='lightgrey')
-matplot(x,mean.pred,type='l',col='green',add=T)
-points(x,y)
-lines(x,X[,1:99]%*%lm(y~X[,1:99]-1)$coef,col=4)
-```
-
-
