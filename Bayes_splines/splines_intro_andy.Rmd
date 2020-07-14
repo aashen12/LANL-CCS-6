@@ -97,7 +97,7 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
     1 / rgamma(1, shape = a_term, rate = b_term)
   }
   
-  p_beta <- function(sig_sq, tau_sq = 100, p = ncol(X)-1) {
+  p_beta <- function(sig_sq, tau_sq = 1000, p = ncol(X)-1) {
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     rmvnorm(1, mean = mu, sigma = sig)
@@ -120,23 +120,22 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
   mat_beta <- a[[1]] #beta values
   mat_sig <- a[[2]] #sig^2 values  
   
-  sq <- x
-  for(ii in 1:nknot) {
-    if(s[i] == 1) {
-      hs[ii,] <- sq - tvec[ii]
-      hs[ii,][sq < tvec[ii]] <- 0
-    }
-    else {
-      hs[ii,] <- -1*(sq - tvec[ii])
-      hs[ii,][sq > tvec[ii]] <- 0
-    }
-  } #setting x values
-  
-  list(mat_beta, mat_sig)
+  list(mat_beta, mat_sig, X)
 }
-mat_beta <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)[[1]]
-mat_sig <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)[[2]]
+bayesian <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)
+mat_beta <- bayesian[[1]]
+mat_sig <- bayesian[[2]]
+X <- bayesian[[3]]
+burn <- 1:15
+colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
+mean(mat_sig[-burn]) #target: 1.46
 ```
+
+```{r}
+matplot(x, X %*% t(mat_beta[-burn,]), type = "l")
+points(x,y)
+```
+
 
 ```{r}
 matplot(mat_beta, type = "l", main = "Sampled Model Coefficients")
@@ -145,9 +144,7 @@ plot(mat_sig, type = "l", main = "Sampled sigma^2 values")
 
 
 ```{r}
-burn <- 1:15
-colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
-mean(mat_sig[-burn]) #target: 1.46
+
 ```
 
 
