@@ -103,7 +103,6 @@ bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
     rmvnorm(1, mean = mu, sigma = sig)
   }
   
-  
   gibbs <- function(its) {
     mat_beta <- matrix(NA, its, ncol(X))
     mat_sig <- rep(NA, its)
