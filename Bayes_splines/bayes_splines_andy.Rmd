@@ -126,10 +126,10 @@ mcmc_spline <- function(nknot = 5) {
       mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1], X = X_curr)
       mat_sig[it] <- p_sig(beta = mat_beta[it,], X = X_curr)
     }
-    list(mat_beta, mat_sig, mat_t, X_curr, ar)
+    list(mat_beta, mat_sig, mat_t, X_curr, ar/its)
   }
 
-  its <- 3000
+  its <- 30
   a <- met_gibbs(its = its)
   mat_beta <- a[[1]] #beta values
   mat_sig <- a[[2]] #sig^2 values
@@ -143,138 +143,21 @@ mcmc_spline <- function(nknot = 5) {
 ```
 
 
-```{r}
-mcmc_spline()
-```
-
-
-
-
-
-
-
-
-
-
-
-# 1 Manual Frequentist Spline Function
-
-```{r}
-generate_spline <- function(tvec, y, x, nknot = length(tvec)) {
-  s <- sample(c(1), nknot, replace = TRUE)
-  Bmat <- matrix(NA, nknot, length(x))
-  hs <- Bmat
-  
-  for(i in 1:nknot) {
-    for(j in 1:length(x)) {
-      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
-    } #creating basis functions
-  }
-  
-  mBmat <- t(Bmat)
-  mod <- lm(y ~ mBmat) #use gibbs to sample coefs in bayes
-  pred <- predict(mod)
-  
-  sq <- x
-  for(ii in 1:nknot) {
-    if(s[i] == 1) {
-      hs[ii,] <- sq - tvec[ii]
-      hs[ii,][sq < tvec[ii]] <- 0
-    }
-    else {
-      hs[ii,] <- -1*(sq - tvec[ii])
-      hs[ii,][sq < tvec[ii]] <- 0
-    }
-  } #setting x values
-  
-  plot(x,y, main = "Manual Basis Spline")
-  lines(x, pred, type = "l", lwd = 5, col="blue1")
-  summary(mod)
-}
-
+```{r, warning=FALSE}
+res <- mcmc_spline()
+mat_beta <- res[[1]]
+mat_sig <- res[[2]]
+mat_t <- res[[3]]
+X_curr <- res[[4]]
+ar <- res[[5]]
 ```
 
 ```{r}
-tv <- c(0, 0.525, 0.865) #vector of t-values
-generate_spline(tv, y = y, x = x)
+matplot(mat_beta, type = "l")
+plot(mat_sig, type = "l")
+matplot(mat_t, type = "l")
+colMeans(mat_beta)
+mean(mat_sig)
+ar
 ```
 
-\pagebreak
-
-# 2 Bayesian Spline
-
-```{r}
-library(mvtnorm)
-
-bayes_spline <- function(tvec, y, x, nknot = length(tvec)) {
-  s <- sample(c(1), nknot, replace = TRUE)
-  Bmat <- matrix(NA, nknot, length(x))
-  hs <- Bmat
-  
-  for(i in 1:nknot) {
-    for(j in 1:length(x)) {
-      Bmat[i,j] <- max(s[i] * (x[j] - tvec[i]), 0)
-    } #creating basis
-  } #X Matrix
-  
-  X <- t(Bmat)
-  X <- cbind(1, X)
-  
-  p_sig <- function(a = 0, b = 0, n = nrow(X), beta) {
-    a_term <- a + (n/2)
-    b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta)))) #y, X defined above
-    1 / rgamma(1, shape = a_term, rate = b_term)
-  }
-  
-  p_beta <- function(sig_sq, tau_sq = 1000, p = ncol(X)-1) {
-    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
-    mu <- (1/sig_sq) * sig %*% t(X) %*% y
-    rmvnorm(1, mean = mu, sigma = sig)
-  }
-  
-  gibbs <- function(its) {
-    mat_beta <- matrix(NA, its, ncol(X))
-    mat_sig <- rep(NA, its)
-    mat_sig[1] <- 0.01
-    mat_beta[1,] <- rep(0, ncol(X))
-    for(it in 2:its) {
-      mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1])
-      mat_sig[it] <- p_sig(beta = mat_beta[it,])
-    }
-    list(mat_beta, mat_sig)
-  }
-
-  its <- 3000
-  a <- gibbs(its = its)
-  mat_beta <- a[[1]] #beta values
-  mat_sig <- a[[2]] #sig^2 values  
-  
-  list(mat_beta, mat_sig, X)
-}
-
-bayesian <- bayes_spline(c(0, 0.525, 0.865), y = y, x = x)
-mat_beta <- bayesian[[1]]
-mat_sig <- bayesian[[2]]
-X <- bayesian[[3]]
-burn <- 1:15
-colMeans(mat_beta[-burn,]) #target: -1.83, 25.19, -91.23, 135.03
-mean(mat_sig[-burn]) #target: 1.46
-```
-
-
-```{r}
-mean.pred <- X %*% t(mat_beta)
-matplot(x, mean.pred, type = "l")
-points(x,y)
-```
-
-
-```{r}
-# pred <- t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig)) #mean: X %*% beta
-# hist(X[100,] %*% t(mat_beta) + rnorm(2985,sd=sqrt(mat_sig))) #prediction
-# matplot(x,t(pred), type='l', col='lightgrey')
-# matplot(x,mean.pred, type='l', col='green', add=T)
-# points(x,y)
-```
-
-\pagebreak
