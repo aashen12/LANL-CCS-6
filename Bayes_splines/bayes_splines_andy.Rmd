@@ -48,14 +48,14 @@ mcmc_spline <- function(nknot = 5) {
     1 / rgamma(1, shape = a_term, rate = b_term)
   }
   
-  p_beta <- function(sig_sq, tau_sq = 1000, X) {
+  p_beta <- function(sig_sq, tau_sq = 100, X) {
     p = ncol(X)-1
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     rmvnorm(1, mean = mu, sigma = sig)
   }
   
-  bhat <- function(sig_sq, tau_sq = 1000, X) {
+  bhat <- function(sig_sq, tau_sq = 100, X) {
     p = ncol(X)-1
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
@@ -80,7 +80,7 @@ mcmc_spline <- function(nknot = 5) {
     mat_beta <- matrix(NA, its, ncol(X_curr))
     mat_sig <- rep(NA, its)
     
-    mat_sig[1] <- 0.01
+    mat_sig[1] <- 0.1
     mat_beta[1,] <- rep(0, ncol(X_curr))
     
     ar <- 0
@@ -129,7 +129,7 @@ mcmc_spline <- function(nknot = 5) {
     list(mat_beta, mat_sig, mat_t, X_curr, ar/its)
   }
 
-  its <- 30
+  its <- 3000
   a <- met_gibbs(its = its)
   mat_beta <- a[[1]] #beta values
   mat_sig <- a[[2]] #sig^2 values
@@ -160,4 +160,8 @@ colMeans(mat_beta)
 mean(mat_sig)
 ar
 ```
+
+
+
+
 
