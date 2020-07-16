@@ -13,7 +13,6 @@ knitr::opts_chunk$set(echo = TRUE)
 Let's say you want to fit a model using some wiggly data.  Maybe
 
 ```{r cars}
-set.seed(12)
 n<-300
 x<-seq(0,1,length.out=n)
 y<-sin(2*pi*x^2)*10+rnorm(n)
@@ -41,22 +40,22 @@ mcmc_spline <- function(nknot = 5) {
     (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
   }
   
-  p_sig <- function(a = 0, b = 0, X, beta) {
+  p_sig <- function(a = 20, b = 3, X, beta) {
     n <- nrow(X)
     a_term <- a + (n/2)
     b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta))))
     1 / rgamma(1, shape = a_term, rate = b_term)
   }
   
-  p_beta <- function(sig_sq, tau_sq = 100, X) {
-    p = ncol(X)-1
+  p_beta <- function(sig_sq, tau_sq = 10000, X) {
+    p = ncol(X) - 1
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     rmvnorm(1, mean = mu, sigma = sig)
   }
   
-  bhat <- function(sig_sq, tau_sq = 100, X) {
-    p = ncol(X)-1
+  bhat <- function(sig_sq, tau_sq = 10000, X) {
+    p = ncol(X) - 1
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     mu
@@ -65,17 +64,18 @@ mcmc_spline <- function(nknot = 5) {
   met_gibbs <- function(its) {
     
     mat_t <- matrix(NA, its, nknot)
-    mat_t[1,] <- rep(0, nknot)
+    mat_t[1,] <- seq(0.1, 0.5, by = 0.1)
     
     ## INITIALIZE X_curr ##
     X_curr <- matrix(NA, nknot, length(x))
-    s <- sample(1, nknot, replace = TRUE)
+    s <- rep(1, nknot)
     for(i in 1:nknot) {
         for(j in 1:length(x)) {
           X_curr[i,j] <- max(s[i] * (x[j] - mat_t[1,i]), 0)
-        } #creating basis
-      } #X Matrix 
-    X_curr <- t(X_curr); X_curr <- cbind(1, X_curr)
+        } 
+      }
+    X_curr <- t(X_curr)
+    X_curr <- cbind(1, X_curr)
     
     mat_beta <- matrix(NA, its, ncol(X_curr))
     mat_sig <- rep(NA, its)
@@ -84,6 +84,7 @@ mcmc_spline <- function(nknot = 5) {
     mat_beta[1,] <- rep(0, ncol(X_curr))
     
     ar <- 0
+    
     for(it in 2:its) {
       propose_t <- function(x) {
         log(dunif(x, 0, 1))
@@ -93,9 +94,9 @@ mcmc_spline <- function(nknot = 5) {
       
       ### CREATE BASIS FUNCTIONS FROM THIS t-vector  ###
       
-      s <- sample(1, nknot, replace = TRUE)
+      s <- rep(1, nknot)
       
-      X_cand <- matrix(NA, nknot, length(x))
+      X_cand <- t(X_curr[,-1])#matrix(NA, nknot, length(x))
       
       for(i in 1:nknot) {
         for(j in 1:length(x)) {
@@ -126,7 +127,7 @@ mcmc_spline <- function(nknot = 5) {
       mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1], X = X_curr)
       mat_sig[it] <- p_sig(beta = mat_beta[it,], X = X_curr)
     }
-    list(mat_beta, mat_sig, mat_t, X_curr, ar/its)
+    list(mat_beta, mat_sig, mat_t, X_curr, ar)
   }
 
   its <- 3000
@@ -153,14 +154,21 @@ ar <- res[[5]]
 ```
 
 ```{r}
-matplot(mat_beta, type = "l")
-plot(mat_sig, type = "l")
-matplot(mat_t, type = "l")
+matplot(mat_beta, type = "l", main = "Plot of Regression Coefficients")
+plot(mat_sig, type = "l", main = "Plot of Sigma^2")
+matplot(mat_t, type = "l", main = "Plot of Knot Locations")
 colMeans(mat_beta)
+colMeans(mat_t)
 mean(mat_sig)
 ar
 ```
 
+
+```{r}
+mean.pred <- X_curr %*% t(mat_beta) 
+matplot(x, mean.pred, type = "l") 
+points(x,y)
+```
 
 
 
