@@ -67,7 +67,7 @@ $$
 p(\sigma^2 \mid \cdot) \propto IG(a,b) ~ L(\boldsymbol \beta, \sigma^2 \mid \boldsymbol y)
 $$
 
-Leveraging the fact that $\mathbb{E}(\boldsymbol y) = \boldsymbol{X\beta}$, the derivation of the likelihood is as follows (shoutout to Stats 100C Lec 3, Spring 2020):
+Leveraging the fact that $\mathbb{E}(\boldsymbol y) = \boldsymbol{X\beta}$, the derivation of the likelihood is as follows (Stats 100C):
 
 $$
 L(\boldsymbol \beta, \sigma^2 | \boldsymbol y) =  \prod_{i=1}^{N} p(y_i | \boldsymbol \beta, \sigma^2) 
