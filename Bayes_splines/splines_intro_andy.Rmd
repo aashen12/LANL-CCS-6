@@ -142,11 +142,11 @@ points(x,y)
 
 
 ```{r}
-# pred <- t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig)) #mean: X %*% beta
-# hist(X[100,] %*% t(mat_beta) + rnorm(2985,sd=sqrt(mat_sig))) #prediction
-# matplot(x,t(pred), type='l', col='lightgrey')
-# matplot(x,mean.pred, type='l', col='green', add=T)
-# points(x,y)
+pred <- t(mean.pred) + rnorm(300*2985,sd=sqrt(mat_sig)) #mean: X %*% beta
+hist(X[100,] %*% t(mat_beta) + rnorm(2985,sd=sqrt(mat_sig))) #prediction
+matplot(x,t(pred), type='l', col='lightgrey')
+matplot(x,mean.pred, type='l', col='green', add=T)
+points(x,y)
 ```
 
 \pagebreak

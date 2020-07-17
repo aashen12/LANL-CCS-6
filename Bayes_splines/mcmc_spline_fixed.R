@@ -1,5 +1,5 @@
 library(mvtnorm)
-mcmc_spline <- function(nknot = 5) {
+mcmc_spline <- function(nknot) {
   
   p_t <- function(sig_sq, betahat, X) {
     (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
@@ -29,7 +29,7 @@ mcmc_spline <- function(nknot = 5) {
   met_gibbs <- function(its) {
     
     mat_t <- matrix(NA, its, nknot)
-    mat_t[1,] <- seq(0.1, 0.5, by = 0.1)
+    mat_t[1,] <- rep(0, nknot)
     
     ## INITIALIZE X_curr ##
     X_curr <- matrix(NA, nknot, length(x))
@@ -78,7 +78,6 @@ mcmc_spline <- function(nknot = 5) {
       
       accept_prob <- min(0, ratio)
       u <- log(runif(1))
-      #browser()
       if(u < accept_prob) {
         ar <- ar + 1
         mat_t[it,] <- candidate_t
@@ -107,7 +106,7 @@ mcmc_spline <- function(nknot = 5) {
 
 # Generate a matrix of basis functions given number of knots and vector of knots
 
-spline.basis <- function(nknot = 5, knots) {
+spline.basis <- function(nknot, knots) {
   s = rep(1, nknot)
   Xm <- matrix(NA, nknot, length(x))
   for(i in 1:nknot) {
