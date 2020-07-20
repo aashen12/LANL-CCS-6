@@ -151,9 +151,6 @@ points(x,y)
 
 \pagebreak
 
-
-\pagebreak
-
 # Trying things out
 
 ```{r}

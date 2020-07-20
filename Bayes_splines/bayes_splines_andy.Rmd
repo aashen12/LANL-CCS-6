@@ -82,5 +82,3 @@ points(x, y)
 plot(x, rowMeans(mean.pred), lwd = 10, type = "l", col = "royalblue")
 points(x, y)
 ```
-
-
