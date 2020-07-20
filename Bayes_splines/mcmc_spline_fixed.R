@@ -29,11 +29,12 @@ mcmc_spline <- function(nknot) {
   met_gibbs <- function(its) {
     
     mat_t <- matrix(NA, its, nknot)
+    mat_s <- matrix(NA, its, nknot)
     mat_t[1,] <- rep(0, nknot)
-    
+    mat_s[1,] <- rep(1, nknot)
     ## INITIALIZE X_curr ##
     X_curr <- matrix(NA, nknot, length(x))
-    s <- rep(1, nknot)
+    s <- mat_s[1,] #rep(1, nknot)
     for(i in 1:nknot) {
       for(j in 1:length(x)) {
         X_curr[i,j] <- max(s[i] * (x[j] - mat_t[1,i]), 0)
@@ -56,12 +57,13 @@ mcmc_spline <- function(nknot) {
       }
       
       candidate_t <- runif(nknot, 0, 1)
+      candidate_s <- sample(c(-1,1), nknot, replace = T)
       
       ### CREATE BASIS FUNCTIONS FROM THIS t-vector  ###
       
-      s <- rep(1, nknot)
+      s <- candidate_s
       
-      X_cand <- t(X_curr[,-1]) #matrix(NA, nknot, length(x))
+      X_cand <- matrix(NA, nknot, length(x))#t(X_curr[,-1]) 
       
       for(i in 1:nknot) {
         for(j in 1:length(x)) {
@@ -81,15 +83,17 @@ mcmc_spline <- function(nknot) {
       if(u < accept_prob) {
         ar <- ar + 1
         mat_t[it,] <- candidate_t
+        mat_s[it,] <- candidate_s
         X_curr <- X_cand
       } else {
         mat_t[it,] <- mat_t[it-1,]
+        mat_s[it,] <- mat_s[it-1,]
       }
       
       mat_beta[it,] <- p_beta(sig_sq = mat_sig[it-1], X = X_curr)
       mat_sig[it] <- p_sig(beta = mat_beta[it,], X = X_curr)
     }
-    list(mat_beta, mat_sig, mat_t, X_curr, ar/its)
+    list(mat_beta, mat_sig, mat_t, X_curr, ar/its, mat_s)
   }
   a <- met_gibbs(its = its)
   mat_beta <- a[[1]] #beta values
@@ -97,8 +101,9 @@ mcmc_spline <- function(nknot) {
   mat_t <- a[[3]]
   X_curr <- a[[4]]
   ar <- a[[5]]
+  mat_s <- a[[6]]
   
-  list(mat_beta, mat_sig, mat_t, X_curr, ar)
+  list(mat_beta, mat_sig, mat_t, X_curr, ar, mat_s)
 }
 
 
@@ -106,12 +111,12 @@ mcmc_spline <- function(nknot) {
 
 # Generate a matrix of basis functions given number of knots and vector of knots
 
-spline.basis <- function(nknot, knots) {
-  s = rep(1, nknot)
+spline.basis <- function(nknot, knots, signs) {
+  
   Xm <- matrix(NA, nknot, length(x))
   for(i in 1:nknot) {
     for(j in 1:length(x)) {
-      Xm[i,j] <- max(s[i] * (x[j] - knots[i]), 0)
+      Xm[i,j] <- max(signs[i] * (x[j] - knots[i]), 0)
     } 
   } 
   Xm <- t(Xm)

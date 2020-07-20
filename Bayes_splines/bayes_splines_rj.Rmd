@@ -1,5 +1,5 @@
 ---
-title: "Bayesian Regression Splines"
+title: "Bayesian Regression Splines with RJMCMC"
 author: "Andy Shen, Devin Francom"
 output:
   pdf_document: default
@@ -30,14 +30,13 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 # Bayesian Spline with Random Knots
 
 ```{r, error=TRUE}
-knotnum <- 5
 its = 3000
-source("mcmc_spline_fixed.R")
+source("mcmc_spline_rj.R")
 ```
 
 
 ```{r, warning=FALSE}
-res <- mcmc_spline(knotnum)
+res <- mcmc_spline()
 mat_beta <- res[[1]]
 mat_sig <- res[[2]]
 mat_t <- res[[3]]
