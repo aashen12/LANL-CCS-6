@@ -1,5 +1,5 @@
 ---
-title: "Bayesian Regression Splines with RJMCMC"
+title: "Bayesian Regression Splines with Reversible Jump MCMC"
 author: "Andy Shen, Devin Francom"
 output:
   pdf_document: default
@@ -31,58 +31,55 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 
 ```{r, error=TRUE}
 set.seed(12)
-its = 3000
 source("mcmc_spline_rj.R")
 ```
 
 ```{r, warning=FALSE}
-res <- mcmc_spline()
+iterations <- 3000
+res <- mcmc_spline(its = iterations)
 ```
 
 
 ```{r, warning=FALSE}
 mat_beta <- res[[1]]
-mat_sig <- res[[2]]
+mat_beta <- mat_beta[,colSums(is.na(mat_beta)) != nrow(mat_beta)] %>% as.matrix()
+mat_sig <- res[[2]] 
 mat_t <- res[[3]]
-X_curr <- res[[4]]
-ar <- res[[5]]
-mat_s <- res[[6]]
+mat_t <- mat_t[,colSums(is.na(mat_t)) != nrow(mat_t)] %>% as.matrix() 
+mat_s <- res[[4]]
+mat_s <- mat_s[,colSums(is.na(mat_s)) != nrow(mat_s)] %>% as.matrix() 
+X_curr <- res[[5]]
 ```
 
-```{r}
-colMeans(mat_beta)
-colMeans(mat_t)
-mean(mat_sig)
-ar
-```
 
 ```{r}
-matplot(mat_beta, type = "l", main = "Plot of Regression Coefficients")
-plot(mat_sig, type = "l", main = "Plot of Sigma^2")
+burn <- 1:50
+matplot(mat_beta[-burn,], type = "l", main = "Plot of Regression Coefficients")
+plot(mat_sig[-burn], type = "l", main = "Plot of Sigma^2")
 matplot(mat_t, type = "l", main = "Plot of Knot Locations")
 ```
 
-
-
 ```{r}
-mean.pred <- matrix(NA, nrow = its, ncol = length(x))
+knotnum <- ncol(mat_t)
+mean.pred <- matrix(NA, nrow = iterations, ncol = length(x))
 pred <- mean.pred
-for(p in 1:its) {
-  mean.pred[p,] <- spline.basis(nknot = knotnum, knots = mat_t[p,], signs = mat_s[p,]) %*% mat_beta[p,]
+for(p in 1:iterations) {
+  splb <- spline.basis(nknot = knotnum, knots = mat_t[p,], signs = mat_s[p,])
+  mean.pred[p,] <- splb %*% mat_beta[p,]
   pred[p,] <- mean.pred[p,] + rnorm(length(x), sd = sqrt(mat_sig[p])) 
 }
 mean.pred <- t(mean.pred)
 ```
 
 ```{r}
-pred_adj <- t(apply(pred, 2, quantile, probs = c(0.025, 0.975)))
-matplot(x, pred_adj, col = "lightgrey", lwd = 6, type = "l")
-matplot(x, mean.pred, type = "l", lwd = 3, add = TRUE)
+pred_adj <- t(apply(pred, 2, quantile, probs = c(0.025, 0.975), na.rm = TRUE))
+matplot(x, pred_adj, col = "lightgrey", lwd = 5, type = "l")
+matplot(x, mean.pred, type = "l", lwd = 9, add = TRUE)
 points(x, y)
 ```
-
 
 ```{r}
-plot(x, rowMeans(mean.pred), lwd = 10, type = "l", col = "royalblue")
+plot(x, rowMeans(mean.pred, na.rm = TRUE), lwd = 8, type = "l", col = "royalblue")
 points(x, y)
 ```
+
