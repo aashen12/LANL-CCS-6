@@ -2,6 +2,11 @@ library(mvtnorm)
 library(dplyr)
 mcmc_spline <- function() {
   
+  pos <- function(v) {
+    v[v < 0] <- 0
+    v
+  }
+  
   p_t <- function(sig_sq, betahat, X) {
     (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
   }
@@ -112,12 +117,7 @@ mcmc_spline <- function() {
         basis_vec <- rep(NA, length(x))
         candidate_t <- runif(1)
         candidate_s <- sample(c(-1,1), 1, replace = TRUE)
-        
-        pos <- function(v) {
-          v[v < 0] <- 0
-          v
-        }
-        
+
         basis_vec <- pos(candidate_s * (x - candidate_t))
         
         X_cand <- cbind(X_curr, basis_vec)
@@ -156,22 +156,23 @@ mcmc_spline <- function() {
         basis_vec <- rep(NA, length(x))
         candidate_t <- runif(1)
         candidate_s <- sample(c(-1,1), 1, replace = TRUE)
-        pos <- function(v) {
-          v[v < 0] <- 0
-          v
-        }
+        
         basis_vec <- pos(candidate_s * (x - candidate_t))
         X_cand[,col] <- basis_vec  
         
         ratio_change <- function(tau_sq = 0.01, g1 = 0.01, g2 = 0.01, n = length(y)) {
           Vprime <- solve(t(X_cand) %*% X_cand + tau_sq * diag(ncol(X_cand)))
           V <- solve(t(X_curr) %*% X_curr + tau_sq * diag(ncol(X_curr)))
+          
           aprime <- Vprime %*% t(X_cand) %*% y 
           a <- V %*% t(X_curr) %*% y 
+          
           dprime <- g2 + (t(y) %*% y) - (t(aprime) %*% solve(Vprime) %*% aprime)
           d <- g2 + (t(y) %*% y) - (t(a) %*% solve(V) %*% a)
+          
           V_part <- 0.5 * log(det(Vprime)) -  0.5 * log(det(V))
           d_part <- (g1 + n/2) * (log(d) - log(dprime))
+          
           V_part + d_part
         }
         
