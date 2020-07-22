@@ -1,17 +1,18 @@
 library(mvtnorm)
 library(dplyr)
+
+pos <- function(v) {
+  v[v < 0] <- 0
+  v
+} # set anything less than 0 to 0; creating basis functions
+
 mcmc_spline <- function(its, max_knot = 50) {
   # Function that returns the results of an RJMCMC algorithm to fit
   # a linear basis spline to a univariate dataset.
   # Input of the function is simply the number of MCMC iterations, with
   # additional functions within the function.
   # The RJMCMC acceptance probabilities are evaluated on the log-scale for convenience
-  
-  pos <- function(v) {
-    v[v < 0] <- 0
-    v
-  } # set anything less than 0 to 0; creating basis functions
-  
+
   p_t <- function(sig_sq, betahat, X) {
     (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
   } # full conditional for the knot locations, t
@@ -39,7 +40,7 @@ mcmc_spline <- function(its, max_knot = 50) {
   
   met_gibbs <- function(its) {
     
-    ### RJ MCMC Ratio Calculations ###
+    ### RJ MCMC Conditionals ###
     
     post <- function(tau_sq = 0.0001, g1 = 10001, g2 = 10000, Xcurr = X_curr, Xcand = X_cand, .Y = y, n = length(y)) {
       ts <- 1 / tau_sq
@@ -63,7 +64,7 @@ mcmc_spline <- function(its, max_knot = 50) {
       num <- .k * log(lambda)
       den <- log(exp(lambda) - 1) + lfactorial(.k)
       return(num - den)
-    } #RJMCMC poisson prior
+    } #RJMCMC poisson prior with default lambda = 1
     
     prior_b <- function(k) {
       return(0.5 * (p(.k = k+1) - p(.k = k)))
@@ -84,8 +85,9 @@ mcmc_spline <- function(its, max_knot = 50) {
     
     
     proposal_d <- function(k) {
-      d <- 1/3#c * min(0, log(p(.k = k+1) - p(.k = k)))
-      b <- 1/3#c * min(0, log(p(.k = k) - p(.k = k+1)))
+      d <- 1/3 #probability of death
+      b <- 1/3 #probability of birth
+      # NOTE: P(change) = 1/3
       num <- log(d) - log(k)
       den <- log(b) - log(2)
       return(den - num)
@@ -208,11 +210,8 @@ mcmc_spline <- function(its, max_knot = 50) {
           mat_s[it,] <- mat_s[it-1,]         
         }
       }
-      
-      # X_curr2 <- X_curr[,colSums(is.na(X_curr)) != nrow(X_curr)]
-      #browser()
+
       mat_beta[it,1:(nknot+1)] <- p_beta(sig_sq = mat_sig[it-1], X = X_curr)
-      #browser()
       mat_sig[it] <- p_sig(X = X_curr, beta = mat_beta[it,(1:(nknot+1))])
     }
     list(mat_beta, mat_sig, mat_t, mat_s, X_curr)
@@ -237,7 +236,7 @@ spline.basis <- function(nknot, knots, signs) {
   Xm <- matrix(NA, nknot, length(x))
   for(i in 1:nknot) {
     for(j in 1:length(x)) {
-      Xm[i,j] <- max(signs[i] * (x[j] - knots[i]), 0)
+      Xm[i,j] <- pos(signs[i] * (x[j] - knots[i]))
     } 
   } 
   Xm <- t(Xm)

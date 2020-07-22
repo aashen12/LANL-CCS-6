@@ -1,0 +1,4 @@
+\beamer@sectionintoc {1}{Basis Functions and Splines}{2}{0}{1}
+\beamer@sectionintoc {2}{Bayesian Adaptive Regression Splines (BARS)}{7}{0}{2}
+\beamer@sectionintoc {3}{Full Conditional Distributions}{14}{0}{3}
+\beamer@sectionintoc {4}{Reversible Jump Monte Carlo (RJ-MCMC)}{23}{0}{4}

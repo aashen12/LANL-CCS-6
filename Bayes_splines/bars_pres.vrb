@@ -1,0 +1,23 @@
+\frametitle{Metropolis-Hastings Algorithm}
+\protect\hypertarget{metropolis-hastings-algorithm}{}
+
+\begin{itemize}
+\item
+  \textbf{Goal}: sample from any probability distribution given a
+  function \(\pi(x)\) proportional to its PDF
+\item
+  Generate a candidate value \(x'\) from a known proposal distribution
+  \(q(x)\) (usually Uniform or Gaussian)
+\item
+  Given the current state value \(x\), calculate acceptance probability
+  \(p = min \lbrace 1, r \rbrace\), where
+\end{itemize}
+
+\[r =  \frac{\pi(x')}{\pi(x)} \frac{q(x \mid x')}{q(x' \mid x)}\]
+
+\begin{itemize}
+\tightlist
+\item
+  Accept or reject \(x'\) given a random number \texttt{runif(1)}
+\end{itemize}
+
