@@ -1,6 +1,6 @@
 library(mvtnorm)
 library(dplyr)
-mcmc_spline <- function(its) {
+mcmc_spline <- function(its, max_knot = 50) {
   # Function that returns the results of an RJMCMC algorithm to fit
   # a linear basis spline to a univariate dataset.
   # Input of the function is simply the number of MCMC iterations, with
@@ -37,7 +37,7 @@ mcmc_spline <- function(its) {
     mu
   } #marginalized betahat for regression coefficients
   
-  met_gibbs <- function(its, max = 50) {
+  met_gibbs <- function(its) {
     
     ### RJ MCMC Ratio Calculations ###
     
@@ -97,10 +97,10 @@ mcmc_spline <- function(its) {
     X_curr <- rep(1, length(x)) %>% as.matrix() 
     # first current X-matrix is just an intercept
     
-    mat_t <- matrix(NA, its, max)
-    mat_s <- matrix(NA, its, max)
+    mat_t <- matrix(NA, its, max_knot)
+    mat_s <- matrix(NA, its, max_knot)
     
-    mat_beta <- matrix(NA, its, max)
+    mat_beta <- matrix(NA, its, max_knot)
     mat_beta[1,1] <- mean(y)
     mat_sig <- rep(NA, its)
     mat_sig[1] <- 1
@@ -115,8 +115,8 @@ mcmc_spline <- function(its) {
       # next step: B, D, or C
       
       samp <- function(knots = nknot) {
-        if((knots == 0) | (knots == 1)) {return(1)}
-        if(knots == max) {sample(2:3, 1)}
+        if((knots == 0) | (knots == 1)) {return(1)} # having 0 or 1 knots must auto defer to birth
+        if(knots == max_knot) {sample(2:3, 1)} #at max_knot knot capacity, can only delete or change
         sample(3, 1)
         # 1 = BIRTH
         # 2 = DEATH
@@ -124,7 +124,7 @@ mcmc_spline <- function(its) {
       }
       choice <- samp()
       
-      if(choice == 1) {
+      if(choice == 1) { # BIRTH
         candidate_t <- runif(1)
         candidate_s <- sample(c(-1,1), 1, replace = TRUE)
 
@@ -132,12 +132,6 @@ mcmc_spline <- function(its) {
         
         X_cand <- cbind(X_curr, basis_vec)
         
-        # Xcand_revised <- X_cand[,colSums(is.na(X_cand)) != nrow(X_cand)] %>% 
-        #   as.matrix()
-        # Xcurr_revised <- X_curr[,colSums(is.na(X_curr)) != nrow(X_curr)] %>% 
-        #   as.matrix()
-        # if a column is all NAs, then that number must equal the number of rows
-
         ratio_rj <- post(Xcurr = X_curr, Xcand = X_cand) + prior_b(k = nknot) + proposal_b(k = nknot)
         
         accept_prob <- min(0, ratio_rj)
