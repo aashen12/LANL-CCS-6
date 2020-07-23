@@ -2,7 +2,7 @@ library(mvtnorm)
 library(dplyr)
 
 pos <- function(vec) {
-  0.5 * ((abs(vec) + vec) / 2)
+  (abs(vec) + vec) / 2
 } # set anything less than 0 to 0; creating basis functions
 
 mcmc_spline <- function(its, max_knot = 50) {
@@ -82,7 +82,6 @@ mcmc_spline <- function(its, max_knot = 50) {
       return(num - den)
     } #proposal in RJMCMC ratio for a birth step
     
-    
     proposal_d <- function(k) {
       d <- 1/3 #probability of death
       b <- 1/3 #probability of birth
@@ -96,19 +95,16 @@ mcmc_spline <- function(its, max_knot = 50) {
     
     nknot <- 0 # First iteration must be a birth
     X_curr <- rep(1, length(x)) %>% as.matrix() 
-    # first current X-matrix is just an intercept
+    # first current X-matrix is just an intercept (matrix of 1's)
     
-    mat_t <- matrix(NA, its, max_knot) #make array, extra dim for basis functions
+    mat_t <- matrix(NA, its, max_knot)
     mat_s <- matrix(NA, its, max_knot)
     
-    # need mat_j, mat_v
-    
     mat_beta <- matrix(NA, its, max_knot)
-    mat_beta[1,1] <- mean(y)
+    mat_beta[1,1] <- mean(y) #arbitrary starting value for beta (in this case beta_0)
     mat_sig <- rep(NA, its)
     mat_sig[1] <- 1
 
-    
     for(it in 2:its) {
       
       # need to generate number of knots and produce X_cand
@@ -128,14 +124,13 @@ mcmc_spline <- function(its, max_knot = 50) {
       choice <- samp()
       
       if(choice == 1) { # BIRTH
-        # sample j
-        # then sample knots, sign, variables
         candidate_t <- runif(1)
         candidate_s <- sample(c(-1,1), 1, replace = TRUE)
 
         basis_vec <- pos(candidate_s * (x - candidate_t))
         
         X_cand <- cbind(X_curr, basis_vec)
+        #candidate X matrix is current binded with candidate basis vector
         
         ratio_rj <- post(Xcurr = X_curr, Xcand = X_cand) + prior_b(k = nknot) + proposal_b(k = nknot)
         
@@ -155,7 +150,7 @@ mcmc_spline <- function(its, max_knot = 50) {
       } 
       
       else if(choice == 2) { #DEATH
-        pick <- sample(2:(nknot+1), 1)
+        pick <- sample(2:(nknot+1), 1) #pick = (column in X to delete) = knot number + 1 (due to intercept)
         X_cand <- X_curr[,-pick]
         
         ratio_rj <- post(Xcurr = X_curr, Xcand = X_cand) + prior_d(k = nknot) + proposal_d(k = nknot)
@@ -166,7 +161,9 @@ mcmc_spline <- function(its, max_knot = 50) {
         if(log(runif(1)) < accept_prob) { 
           nknot <- nknot - 1
           X_curr <- X_cand
-          mat_t[it,(1:nknot)] <- mat_t[it-1,(1:(nknot+1))[-(pick-1)]]
+          mat_t[it,(1:nknot)] <- mat_t[it-1,(1:(nknot+1))[-(pick-1)]] 
+          # (pick - 1) = (column in mat_t to delete) = (knot number to delete)
+          
           mat_s[it,(1:nknot)] <- mat_s[it-1,(1:(nknot+1))[-(pick-1)]]
         } else{
           mat_t[it,] <- mat_t[it-1,]
@@ -176,15 +173,15 @@ mcmc_spline <- function(its, max_knot = 50) {
       
       else { #CHANGE
         X_cand <- X_curr
-        col <- sample(2:(nknot+1), 1)
-        #row <- sample(1:length(x), 1)
+        pick <- sample(2:(nknot+1), 1)
+        #pick = (column in X to change) = knot number + 1 (due to intercept)
         candidate_t <- runif(1)
         candidate_s <- sample(c(-1,1), 1, replace = TRUE)
         
         basis_vec <- pos(candidate_s * (x - candidate_t))
-        X_cand[,col] <- basis_vec  
+        X_cand[,pick] <- basis_vec  
         
-        ratio_change <- function(tau_sq = 0.01, g1 = 0.01, g2 = 0.01, n = length(y)) {
+        ratio_change <- function(tau_sq = 0.01, g1 = 0.01, g2 = 0.01, n = length(y)) { # MAY NEED TO BE MODIFIED FOR BMARS
           Vprime <- solve(t(X_cand) %*% X_cand + tau_sq * diag(ncol(X_cand)))
           V <- solve(t(X_curr) %*% X_curr + tau_sq * diag(ncol(X_curr)))
           
@@ -205,9 +202,10 @@ mcmc_spline <- function(its, max_knot = 50) {
         if(log(runif(1)) < acc) {
           X_curr <- X_cand
           mat_t[it,] <- mat_t[it-1,]
-          mat_t[it, (col-1)] <- candidate_t
+          mat_t[it, (pick-1)] <- candidate_t
           mat_s[it,] <- mat_s[it-1,]
-          mat_s[it, (col-1)] <- candidate_s
+          mat_s[it, (pick-1)] <- candidate_s
+          # (pick - 1) = (column in mat_t to change) = (knot number to change)
         } else{
           mat_t[it,] <- mat_t[it-1,]
           mat_s[it,] <- mat_s[it-1,]         

@@ -2,7 +2,7 @@ library(mvtnorm)
 library(dplyr)
 
 pos <- function(vec) {
-  0.5 * ((abs(vec) + vec) / 2)
+  ((abs(vec) + vec) / 2)
 } # set anything less than 0 to 0; creating basis functions
 
 mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
@@ -62,10 +62,12 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
     
     prior_b <- function(k) {
       return(0.5 * (p(.k = k+1) - p(.k = k)))
+      # needs to be (0.5) ^ J_k+1
     } #prior in RJMCMC ratio for a birth step
     
     prior_d <- function(k) {
       return(0.5 * (p(.k = k-1) - p(.k = k)))
+      # needs to be (0.5) ^ J_k+1
     } #prior in RJMCMC ratio for a death step
     
     proposal_b <- function(k) {
@@ -73,10 +75,10 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
       b <- 1/3 #probability of birth
       # NOTE: P(change) = 1/3
       num <- log(d) - log(k)
-      den <- log(b) - log(2)
+      den <- log(b) - log(2) 
+      # should be log(b) - J_k+1 * log(2*n)
       return(num - den)
     } #proposal in RJMCMC ratio for a birth step
-    
     
     proposal_d <- function(k) {
       d <- 1/3 #probability of death
@@ -93,9 +95,9 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
     X_curr <- rep(1, length(x)) %>% as.matrix() 
     # first current X-matrix is just an intercept
     
-    mat_t <- array(NA, its, max_knot, max_j)
-    mat_s <- array(NA, its, max_knot, max_j)
-    mat_v <- array(NA, its, max_knot, max_j)
+    mat_t <- array(NA, dim = c(its, max_knot, max_j))
+    mat_s <- array(NA, dim = c(its, max_knot, max_j))
+    mat_v <- array(NA, dim = c(its, max_knot, max_j))
     mat_j <- matrix(NA, its, max_knot)
     
     mat_beta <- matrix(NA, its, max_knot)
@@ -105,12 +107,6 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
 
     
     for(it in 2:its) {
-      
-      # need to generate number of knots and produce X_cand
-      # you must choose birth in first iteration
-      # sample knot, sign
-      # if accept, you have 1 BF
-      # next step: B, D, or C
       
       fate <- function(knots = nknot) {
         if((knots == 0) | (knots == 1)) {return(1)} # having 0 or 1 knots must auto defer to birth
@@ -137,22 +133,26 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
         # accept/reject
         j <- samp_j()
         
-        samp_x <- function(vars = j, X) {
+        samp_x <- function(vars = j) {
           n <- ncol(X)
-          sample(2:n, j) #accounting for intercept term
+          sample(2:n, j) %>% sort() #accounting for intercept term, sort the terms
         }
         
-        candidate_t <- runif(j)
+        candidate_t <- runif(j, 0, 1) #change this
         candidate_s <- sample(c(-1,1), j, replace = TRUE)
-
-        basis_vec <- pos(candidate_s * (x - candidate_t))
+        Xmat <- X[,samp_x()]
         
-        X_cand <- cbind(X_curr, basis_vec)
+        unsign <- t(t(Xmat) - candidate_t)
+        basis_mat <- pos(t(candidate_s * t(unsign))) # matrix of basis functions
+        
+        X_cand <- cbind(X_curr, basis_mat)
         
         ratio_rj <- post(Xcurr = X_curr, Xcand = X_cand) + prior_b(k = nknot) + proposal_b(k = nknot)
         #like * prior / proposal
         accept_prob <- min(0, ratio_rj)
+        
         if(is.na(ratio_rj)) browser()
+        
         if(log(runif(1)) < accept_prob) { 
           nknot <- nknot + 1
           mat_t[it,] <- mat_t[it-1,]
