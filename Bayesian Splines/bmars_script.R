@@ -5,13 +5,8 @@ pos <- function(vec) {
   0.5 * ((abs(vec) + vec) / 2)
 } # set anything less than 0 to 0; creating basis functions
 
-mcmc_spline <- function(its, max_knot = 50) {
-  # Function that returns the results of an RJMCMC algorithm to fit
-  # a linear basis spline to a univariate dataset.
-  # Input of the function is simply the number of MCMC iterations, with
-  # additional functions within the function.
-  # The RJMCMC acceptance probabilities are evaluated on the log-scale for convenience
-
+mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
+  
   p_t <- function(sig_sq, betahat, X) {
     (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
   } # full conditional for the knot locations, t
@@ -98,10 +93,10 @@ mcmc_spline <- function(its, max_knot = 50) {
     X_curr <- rep(1, length(x)) %>% as.matrix() 
     # first current X-matrix is just an intercept
     
-    mat_t <- matrix(NA, its, max_knot) #make array, extra dim for basis functions
-    mat_s <- matrix(NA, its, max_knot)
-    
-    # need mat_j, mat_v
+    mat_t <- array(NA, its, max_knot, max_j)
+    mat_s <- array(NA, its, max_knot, max_j)
+    mat_v <- array(NA, its, max_knot, max_j)
+    mat_j <- matrix(NA, its, max_knot)
     
     mat_beta <- matrix(NA, its, max_knot)
     mat_beta[1,1] <- mean(y)
@@ -117,7 +112,7 @@ mcmc_spline <- function(its, max_knot = 50) {
       # if accept, you have 1 BF
       # next step: B, D, or C
       
-      samp <- function(knots = nknot) {
+      fate <- function(knots = nknot) {
         if((knots == 0) | (knots == 1)) {return(1)} # having 0 or 1 knots must auto defer to birth
         if(knots == max_knot) {sample(2:3, 1)} #at max_knot knot capacity, can only delete or change
         sample(3, 1)
@@ -125,20 +120,37 @@ mcmc_spline <- function(its, max_knot = 50) {
         # 2 = DEATH
         # 3 = CHANGE
       }
-      choice <- samp()
+      
+      samp_j <- function(limit = max_j) {
+        sample(1:limit, 1)
+      }
+      
+      choice <- fate()
       
       if(choice == 1) { # BIRTH
         # sample j
-        # then sample knots, sign, variables
-        candidate_t <- runif(1)
-        candidate_s <- sample(c(-1,1), 1, replace = TRUE)
+        # sample j random knots, j random signs, j variables
+        # make 1 basis function from this
+        # ALMOST the same
+        # Prior and proposal will be different
+        # evaluate likelihood
+        # accept/reject
+        j <- samp_j()
+        
+        samp_x <- function(vars = j, X) {
+          n <- ncol(X)
+          sample(2:n, j) #accounting for intercept term
+        }
+        
+        candidate_t <- runif(j)
+        candidate_s <- sample(c(-1,1), j, replace = TRUE)
 
         basis_vec <- pos(candidate_s * (x - candidate_t))
         
         X_cand <- cbind(X_curr, basis_vec)
         
         ratio_rj <- post(Xcurr = X_curr, Xcand = X_cand) + prior_b(k = nknot) + proposal_b(k = nknot)
-        
+        #like * prior / proposal
         accept_prob <- min(0, ratio_rj)
         if(is.na(ratio_rj)) browser()
         if(log(runif(1)) < accept_prob) { 
@@ -155,6 +167,8 @@ mcmc_spline <- function(its, max_knot = 50) {
       } 
       
       else if(choice == 2) { #DEATH
+        # select function to delete
+        # prior, proposal different
         pick <- sample(2:(nknot+1), 1)
         X_cand <- X_curr[,-pick]
         
