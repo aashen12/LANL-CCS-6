@@ -3,7 +3,7 @@ library(dplyr)
 
 pos <- function(vec) {
   ((abs(vec) + vec) / 2)
-} # set anything less than 0 to 0; creating basis functions
+} # set anything less than 0 to 0; creating basis functions [a]+
 
 mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
   
