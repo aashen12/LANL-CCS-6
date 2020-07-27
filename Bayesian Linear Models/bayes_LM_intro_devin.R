@@ -1,4 +1,4 @@
-dat<-read.csv('data.csv')
+dat<-read.csv('~/Desktop/data.csv')
 y<-dat$y
 X<-as.matrix(cbind(1,dat[,-c(1,2)]))
 library(mnormt)
@@ -6,12 +6,13 @@ library(mnormt)
 a<-0
 b<-0
 tau2<-100
+p<-ncol(X)
+n<-nrow(X)
 t2I<-diag(p)/tau2
 XtX<-t(X)%*%X
 Xty<-t(X)%*%y
 
-p<-ncol(X)
-n<-nrow(X)
+
 nmcmc<-2000
 beta<-matrix(nrow=nmcmc,ncol=p)
 s2<-rep(NA,nmcmc)
