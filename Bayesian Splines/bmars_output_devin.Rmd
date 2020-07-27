@@ -1,0 +1,17 @@
+---
+title: "Devin's BMARS"
+author: "Devin Francom"
+date: "7/27/2020"
+output: pdf_document
+---
+
+# Devin's Code
+
+```{r}
+rm(list = ls())
+source("bmars.R")
+```
+```{r}
+mod$nint
+```
+

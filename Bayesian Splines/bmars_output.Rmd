@@ -1,0 +1,75 @@
+---
+title: "BMARS"
+author: "Andy Shen, Devin Francom"
+date: "7/27/2020"
+output: pdf_document
+---
+# Running the Script
+
+```{r}
+rm(list = ls())
+source("bmars_script.R")
+```
+
+
+```{r}
+set.seed(12)
+f <-function(x){
+  10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
+}
+
+sigma <- 1 # noise sd
+n <- 500 # number of observations
+x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
+y <- rnorm(n,f(x),sigma)
+```
+
+```{r}
+iter <- 10000
+mod <- bmars(x, its = iter)
+```
+
+```{r}
+burn <- 1:750
+X <- mod$X
+beta <- mod$beta
+
+mod$count
+
+plot(mod$nknot[-burn], type = "l",
+     main = "Number of knots over time") 
+
+plot(mod$mat_sig[-burn], type = "l",
+     main = "Sigma^2 values over time")
+
+plot(mod$lam[-burn], type = "l",
+     main = "Lambda values over time")
+
+matplot(mod$mat_beta[-burn,], type = "l",
+        main = "Plot of regression coefficients over time")
+
+plot(X%*%beta, y,
+main = "Bayesian predicted values vs actual y values")
+abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
+
+mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
+cat("The predicted y values are correlated with the actual values with 
+an R^2 of", rsq, "\n")
+```
+
+\pagebreak
+
+# Prediction of New Values with BMARS
+
+```{r}
+xtest <- matrix(runif(1000*10), 1000, 10)
+pred <- predict.bmars(mod, X = xtest)
+
+plot(colMeans(pred), f(xtest),
+     main = "True y values vs predicted y-values")
+abline(a= 0, b = 1, lwd = 2, col = "blue1")
+```
+
+
+
+

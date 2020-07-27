@@ -124,7 +124,7 @@ bass<-function(X,y,max.int=3,max.basis=50,tau2=10^4,nmcmc=10000,g1=0,g2=0,h1=10,
         + log(1/choose(p,nint[i-1,tokill])) # probability of vars
         # probability of going from current to proposed
         - (
-          log(1/3) + # probability of selection a death step
+          log(1/3) # probability of selection a death step
           + log(1/nbasis[i-1]) # probability that this basis function is selected to kill
         )
       )
@@ -210,13 +210,15 @@ predict.bass<-function(mod,X,nburn=1000){
 ################################################################################################################
 # test it out
 
-f<-function(x){
+set.seed(12)
+f <-function(x){
   10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
 }
-sigma<-1 # noise sd
-n<-500 # number of observations
-x<-matrix(runif(n*10),n,10) #10 variables, only first 5 matter
-y<-rnorm(n,f(x),sigma)
+
+sigma <- 1 # noise sd
+n <- 500 # number of observations
+x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
+y <- rnorm(n,f(x),sigma)
 
 mod<-bass(x,y)
 mod$count
