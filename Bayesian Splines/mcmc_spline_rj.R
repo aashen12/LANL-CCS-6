@@ -5,7 +5,7 @@ pos <- function(vec) {
   (abs(vec) + vec) / 2
 } # set anything less than 0 to 0; creating basis functions
 
-mcmc_spline <- function(its, max_knot = 50) {
+mcmc_spline <- function(its, max_knot = 200) {
   # Function that returns the results of an RJMCMC algorithm to fit
   # a linear basis spline to a univariate dataset.
   # Input of the function is simply the number of MCMC iterations, with
@@ -46,8 +46,8 @@ mcmc_spline <- function(its, max_knot = 50) {
       V_curr <- solve(t(Xcurr) %*% Xcurr + tau_sq * diag(ncol(Xcurr)))
       V_cand <- solve(t(Xcand) %*% Xcand + tau_sq * diag(ncol(Xcand)))
       
-      num <- 0.5 * log(det(ts * diag(ncol(V_curr)))) + 0.5 * log(det(V_cand))
-      den <- 0.5 * log(det(ts * diag(ncol(V_cand)))) + 0.5 * log(det(V_curr))
+      num <- 0.5 * determinant(ts * diag(ncol(V_curr)), logarithm = T)$mod + 0.5 * determinant(V_cand, logarithm = T)$mod
+      den <- 0.5 * determinant(ts * diag(ncol(V_cand)), logarithm = T)$mod + 0.5 * determinant(V_curr, logarithm = T)$mod
       
       ahatcurr <- bhat(sig_sq = 1, X = Xcurr)
       ahatcand <- bhat(sig_sq = 1, X = Xcand)
@@ -191,7 +191,7 @@ mcmc_spline <- function(its, max_knot = 50) {
           dprime <- g2 + (t(y) %*% y) - (t(aprime) %*% solve(Vprime) %*% aprime)
           d <- g2 + (t(y) %*% y) - (t(a) %*% solve(V) %*% a)
           
-          V_part <- 0.5 * log(det(Vprime)) -  0.5 * log(det(V))
+          V_part <- 0.5 * determinant(Vprime)$mod -  0.5 * determinant(V)$mod
           d_part <- (g1 + n/2) * (log(d) - log(dprime))
           
           V_part + d_part

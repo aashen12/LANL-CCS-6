@@ -20,7 +20,7 @@ bass<-function(X,y,max.int=3,max.basis=50,tau2=10^4,nmcmc=10000,g1=0,g2=0,h1=10,
   p<-ncol(X)
   ssy<-sum(y^2)
   knots<-signs<-vars<-array(dim=c(nmcmc,max.basis,max.int))
-  nint<-matrix(nrow=nmcmc,ncol=max.basis)
+  nint<-matrix(nrow=nmcmc,ncol=max.basis) #J
   beta<-matrix(nrow=nmcmc,ncol=max.basis+1) # +1 for intercept
   s2<-lam<-nbasis<-rep(NA,nmcmc)
   nbasis[1]<-0
