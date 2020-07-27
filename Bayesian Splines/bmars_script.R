@@ -331,11 +331,3 @@ predict.bmars <- function(mod, X, nburn = 1000) {
   
   pred
 }
-
-
-
-
-
-
-
-
