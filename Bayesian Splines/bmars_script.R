@@ -18,7 +18,7 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
     1 / rgamma(1, shape = a_term, rate = b_term)
   } # full conditional for sigma^2 in the regression equation
   
-  p_beta <- function(sig_sq, tau_sq = 1000, X) {
+  p_beta <- function(sig_sq, tau_sq = 10000, X) {
     p = ncol(X) - 1
     sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau_sq) * diag(p+1) )
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
