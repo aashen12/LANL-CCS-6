@@ -310,5 +310,16 @@ summary(m1)
 
 
 
+```{r}
+pos <- function(vec) {
+  ((abs(vec) + vec) / 2)
+} 
+
+adj1 <- pos(-(x - 0.7))
+adj2 <- pos((x - 0.3))
+
+plot(adj1, type = "l", lwd = 6, col = "blue2")
+plot(adj2, type = "l", lwd = 6, col = "red2")
+```
 
 

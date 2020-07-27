@@ -31,12 +31,14 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
     mu <- (1/sig_sq) * sig %*% t(X) %*% y
     mu
   } #marginalized betahat for regression coefficients
+  # THIS IS THE GAUSSIAN LIKELIHOOD
   
   met_gibbs <- function(its) {
     
     ### RJ MCMC Conditionals ###
     
-    post <- function(tau_sq = 0.0001, g1 = 10001, g2 = 10000, Xcurr = X_curr, Xcand = X_cand, .Y = y, n = length(y)) {
+    post <- function(tau_sq = 0.0001, g1 = 10001, g2 = 10000, Xcurr = X_curr, Xcand = X_cand, .Y = y) {
+      n <- length(y)
       ts <- 1 / tau_sq
       V_curr <- solve(t(Xcurr) %*% Xcurr + tau_sq * diag(ncol(Xcurr)))
       V_cand <- solve(t(Xcand) %*% Xcand + tau_sq * diag(ncol(Xcand)))
@@ -136,14 +138,18 @@ mcmc_spline <- function(its, max_knot = 50, max_j = 3) {
         samp_x <- function(vars = j) {
           n <- ncol(X)
           sample(2:n, j) %>% sort() #accounting for intercept term, sort the terms
-        }
+        } #ARE THESE THE v_ij TERMS
         
+        cols <- samp_x() # NEED TO ACCOUNT FOR THE TYPE
         candidate_t <- runif(j, 0, 1) #change this
         candidate_s <- sample(c(-1,1), j, replace = TRUE)
-        Xmat <- X[,samp_x()]
+        Xmat <- X[,cols]
         
         unsign <- t(t(Xmat) - candidate_t)
-        basis_mat <- pos(t(candidate_s * t(unsign))) # matrix of basis functions
+        basis_mat <- t(candidate_s * t(unsign)) 
+        basis_mat <- pos(basis_mat) # matrix of basis functions, same size as X_mat
+        
+        # MULTIPLY BASIS FUNCTIONS TOGETHER TO GET THE DIFFERENT "TYPES"
         
         X_cand <- cbind(X_curr, basis_mat)
         
