@@ -103,10 +103,9 @@ bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=
     ## Eliminating the need for an else statement at the acceptance step ##
     mat_t[i,,] <- mat_t[i-1,,]
     mat_s[i,,] <- mat_s[i-1,,]
-    mat_v[i,,] <- mat_v[i-1,,]
+    mat_v[i,,] <- mat_v[i-1,,] #vars
     mat_j[i,] <- mat_j[i-1,] #nint
     nknot[i] <- nknot[i-1]
-    
     
     samp_j <- function(limit = max_j) {
       sample(1:limit, 1)
