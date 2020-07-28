@@ -31,36 +31,35 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ############################################################################################################
 
-bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=10, h2=10) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
   ssy <- sum(y^2)
-
-    # p_t <- function(sig_sq, betahat, X) {
-  #   (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
-  # } # full conditional for the knot locations, t
-  # 
-  # p_sig <- function(a = g1, b = g2, X, beta) {
-  #   n <- nrow(X)
-  #   a_term <- a + (n/2)
-  #   b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta))))
-  #   1 / rgamma(1, shape = a_term, rate = b_term)
-  # } # full conditional for sigma^2 in the regression equation
-  # 
-  # p_beta <- function(sig_sq, X) {
-  #   p = ncol(X) - 1
-  #   sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau2) * diag(p+1) )
-  #   mu <- (1/sig_sq) * sig %*% t(X) %*% y
-  #   rmvnorm(1, mean = mu, sigma = sig)
-  # } # full conditional for the regression coefficients
-  # 
-  # bhat <- function(sig_sq, X) {
-  #   p = ncol(X) - 1
-  #   sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau2) * diag(p+1) )
-  #   mu <- (1/sig_sq) * sig %*% t(X) %*% y
-  #   mu
-  # } #marginalized betahat for regression coefficients
+  p_t <- function(sig_sq, betahat, X) {
+    (-1/(2*sig_sq)) * t(y - (X %*% betahat)) %*% (y - (X %*% betahat))
+  } # full conditional for the knot locations, t
+  
+  p_sig <- function(a = g1, b = g2, X, beta) {
+    n <- nrow(X)
+    a_term <- a + (n/2)
+    b_term <- 0.5 * (2*b + (t(y - (X %*% beta)) %*% (y - (X %*% beta))))
+    1 / rgamma(1, shape = a_term, rate = b_term)
+  } # full conditional for sigma^2 in the regression equation
+  
+  p_beta <- function(sig_sq, X) {
+    p = ncol(X) - 1
+    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau2) * diag(p+1) )
+    mu <- (1/sig_sq) * sig %*% t(X) %*% y
+    rmvnorm(1, mean = mu, sigma = sig)
+  } # full conditional for the regression coefficients
+  
+  bhat <- function(sig_sq, X) {
+    p = ncol(X) - 1
+    sig <- solve( (1/sig_sq) * (t(X) %*% X) + (1/tau2) * diag(p+1) )
+    mu <- (1/sig_sq) * sig %*% t(X) %*% y
+    mu
+  } #marginalized betahat for regression coefficients
   # THIS IS THE GAUSSIAN LIKELIHOOD
     
   ## Initializing Values for RJMCMC ##
