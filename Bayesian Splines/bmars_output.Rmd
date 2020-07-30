@@ -36,6 +36,8 @@ beta <- mod$beta
 
 mod$count
 
+mod$nknot[length(mod$nknot)]
+
 plot(mod$nknot[-burn], type = "l",
      main = "Number of knots over time") 
 
@@ -48,7 +50,7 @@ plot(mod$lam[-burn], type = "l",
 matplot(mod$mat_beta[-burn,], type = "l",
         main = "Plot of regression coefficients over time")
 
-plot(X%*%beta, y,
+plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
 abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
 
