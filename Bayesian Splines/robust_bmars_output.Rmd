@@ -1,0 +1,32 @@
+---
+title: "Robust BMARS Output"
+author: "Andy Shen"
+date: "7/31/2020"
+output: pdf_document
+---
+
+# Running the Script
+
+
+```{r}
+rm(list = ls())
+source("bmars_script.R")
+```
+
+
+```{r}
+set.seed(12)
+f <-function(x){
+  10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
+}
+
+sigma <- 1 # noise sd
+n <- 500 # number of observations
+x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
+y <- rnorm(n,f(x),sigma)
+```
+
+```{r}
+iter <- 10000
+mod <- bmars(x, its = iter)
+```

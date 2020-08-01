@@ -8,7 +8,7 @@ output: pdf_document
 
 ```{r}
 rm(list = ls())
-source("bmars_script.R")
+source("robust_bmars.R")
 ```
 
 
@@ -25,12 +25,12 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 10000
+iter <- 3000
 mod <- bmars(x, its = iter)
 ```
 
 ```{r}
-burn <- 1:750
+burn <- 1:7#50
 X <- mod$X
 beta <- mod$beta
 
@@ -50,6 +50,9 @@ plot(mod$lam[-burn], type = "l",
 matplot(mod$mat_beta[-burn,], type = "l",
         main = "Plot of regression coefficients over time")
 
+matplot(mod$W, type = "l",
+        main = "Plot of V over time")
+
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
 abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
@@ -63,7 +66,7 @@ an R^2 of", rsq, "\n")
 
 # Prediction of New Values with BMARS
 
-```{r}
+```{r, error=TRUE}
 xtest <- matrix(runif(1000*10), 1000, 10)
 pred <- predict.bmars(mod, X = xtest)
 
