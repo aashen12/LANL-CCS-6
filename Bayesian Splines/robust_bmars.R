@@ -33,6 +33,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
     }
     return(temp2)
   }
+  
 }
 
 ############################################################################################################
@@ -51,6 +52,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   mat_t <- array(NA, dim = c(its, max_knot, max_j)) #knots
   mat_s <- array(NA, dim = c(its, max_knot, max_j)) #signs
   mat_v <- array(NA, dim = c(its, max_knot, max_j)) #vars
+  
   mat_w <- array(NA, dim = c(n, n, its))
   
   mat_j <- matrix(NA, its, max_knot) #number of interactions: nint
@@ -59,10 +61,12 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   mat_sig <- lam <- nknot <- rep(NA, its) #sigma^2, lambda, number of knots
   mat_sig[1] <- 1
   lam[1] <- 1
+  
   mat_w[,,1] <- diag(rep(1, n))
   
   nknot[1] <- 0 # First iteration must be a birth
   X_curr <- rep(1, n) %>% as.matrix() # first current X-matrix is just an intercept
+  
   Wcurr <- mat_w[,,1]
   
   ### Likelihood in Denison, et. al ###
@@ -93,6 +97,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     mat_v[i,,] <- mat_v[i-1,,] #vars
     mat_j[i,] <- mat_j[i-1,] #nint
     nknot[i] <- nknot[i-1]
+    
     mat_w[,,i] <- mat_w[,,i-1]
     
     # samp_j <- function(limit = max_j) {
@@ -108,6 +113,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       j <- sample(max_j, 1) #nint.cand: degree of interaction for new basis function
       candidate_t <- runif(j, 0, 1) # sample knot locations for new basis function
       candidate_s <- sample(c(-1,1), j, replace = TRUE) #signs for new basis functions
+      
       candidate_w <- 1/rchisq(n, nu+1)
       # candidate_w <- rinvchisq(
       #   n,
@@ -115,6 +121,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       #   scale = ((nu * mat_sig[i-1]) + (y - X %*% mat_beta[i-1,])^2) / (nu + 1)
       # )
       Wcand <- diag(1/candidate_w)
+      
       var <- samp_vars(deg = j) #vars.cand: this is a candidate value for the columns of X to extract. There are j of them
       basis_mat <- spline.basis(signs = candidate_s, vars = var, knots = candidate_t, tdat = Xt) #candidate basis function
       X_cand <- cbind(X_curr, basis_mat)

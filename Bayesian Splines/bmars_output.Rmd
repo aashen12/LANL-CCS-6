@@ -8,7 +8,7 @@ output: pdf_document
 
 ```{r}
 rm(list = ls())
-source("robust_bmars.R")
+source("bmars_script.R")
 ```
 
 
@@ -25,7 +25,7 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 3000
+iter <- 10000
 mod <- bmars(x, its = iter)
 ```
 
@@ -49,9 +49,6 @@ plot(mod$lam[-burn], type = "l",
 
 matplot(mod$mat_beta[-burn,], type = "l",
         main = "Plot of regression coefficients over time")
-
-matplot(mod$W, type = "l",
-        main = "Plot of V over time")
 
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
