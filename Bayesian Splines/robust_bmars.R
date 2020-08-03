@@ -53,7 +53,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   mat_s <- array(NA, dim = c(its, max_knot, max_j)) #signs
   mat_v <- array(NA, dim = c(its, max_knot, max_j)) #vars
   
-  mat_w <- array(NA, dim = c(n, n, its))
+  mat_w <- array(NA, dim = c(n, n, its)) #an nxn matrix replicated for each iteration
   
   mat_j <- matrix(NA, its, max_knot) #number of interactions: nint
   mat_beta <- matrix(NA, its, max_knot + 1) #+1 for intercept
@@ -114,13 +114,13 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       candidate_t <- runif(j, 0, 1) # sample knot locations for new basis function
       candidate_s <- sample(c(-1,1), j, replace = TRUE) #signs for new basis functions
       
-      candidate_w <- 1/rchisq(n, nu+1)
+      candidate_w <- 1/rchisq(n, nu+1) #sample candidate w from inv Chi Sq
       # candidate_w <- rinvchisq(
       #   n,
       #   df = nu + 1,
       #   scale = ((nu * mat_sig[i-1]) + (y - X %*% mat_beta[i-1,])^2) / (nu + 1)
       # )
-      Wcand <- diag(1/candidate_w)
+      Wcand <- diag(1/candidate_w) #matrix is 1/candidate
       
       var <- samp_vars(deg = j) #vars.cand: this is a candidate value for the columns of X to extract. There are j of them
       basis_mat <- spline.basis(signs = candidate_s, vars = var, knots = candidate_t, tdat = Xt) #candidate basis function
@@ -131,6 +131,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       Vinv_cand <- crossprod(X_cand, Wcand %*% X_cand) + diag(nknot[i-1] + 2) / tau2 # +2: 1 for intercept, 1 for birth
       ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcand %*% y)
       dcand <- g2 + crossprod(y, Wcand%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
+      #update the likelihood based on t-errors
       
       llik.alpha <- (
         0.5*log(1/tau2) # simplifying the tau2*I fraction
@@ -167,13 +168,13 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
         Vinv_curr <- Vinv_cand
         dcurr <- dcand
         X_curr <- X_cand
-        Wcurr <- Wcand
+        Wcurr <- Wcand #accept the W matrix
         nknot[i] <- nknot[i-1] + 1 #tracking the knots at every iteration
         mat_j[i, nknot[i]] <- j #the candidate degree of interaction is accepted
         mat_t[i, nknot[i], 1:j] <- candidate_t
         mat_s[i, nknot[i], 1:j] <- candidate_s
         mat_v[i, nknot[i], 1:j] <- var
-        mat_w[,,i] <- Wcand
+        mat_w[,,i] <- Wcand #update W matrix
         count[1] <- count[1] + 1
       }
     } 
@@ -183,6 +184,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       X_cand <- X_curr[,-(pick+1)] # ACCOUNTING FOR THE INTERCEPT as pick is based on number of knots. 
       #Wcand <- Wcurr[,-pick]
       # ncol(X) = nknot[i-1] + 1
+      # HOW DO YOU DELETE A BASIS FUNCTION FROM W
       
       ### BASED ON DENISON, ET. AL ###
       
@@ -222,6 +224,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       #accept_prob <- min(0, ratio_rj)
       if(is.na(ratio_rj)) browser()
       if(log(runif(1)) < ratio_rj) { 
+        # HOW IS THE W MATRIX UPDATED IN THE DEATH/CHANGE STEPS?
         X_curr <- X_cand
         ahat_curr <- ahat_cand
         Vinv_curr <- Vinv_cand
@@ -243,6 +246,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     } 
     
     else { #CHANGE
+      # HOW DO YOU CHANGE A BASIS FUNCTION FROM W?
       tochange <- sample(nknot[i-1], 1) #sample a knot number to change 
       tochange2 <- sample(mat_j[i-1,tochange], 1) #sample a number from the...
       #degree of interaction corresponding to this knot number,
