@@ -70,6 +70,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   Wcurr <- mat_w[,,1]
   
   ### Likelihood in Denison, et. al ###
+  #updated for robust t
   Vinv_curr <- crossprod(X_curr, Wcurr %*% X_curr) + 1/tau2 
   ahat_curr <- solve(Vinv_curr) %*% crossprod(X_curr, Wcurr %*% y)
   dcurr <- g2 + ssy - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
