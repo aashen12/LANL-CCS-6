@@ -23,15 +23,16 @@ pos <- function(vec) {
 
 spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
   temp1 <- pos(signs * (tdat[vars,,drop = F] - knots))^deg #transformation
+  #vectorized, hockey sticks
   
   if(length(vars) == 1) {
-    return(c(temp1))
+    return(c(temp1)) #if everything scalar, return vector
   } else {
     temp2 <- 1
-    for(pp in 1:length(vars)) {
-      temp2 <- temp2 * temp1[pp,]
+    for(pp in 1:length(vars)) { #if knot, sign, vars are vectors
+      temp2 <- temp2 * temp1[pp,] #multivariate
     }
-    return(temp2)
+    return(temp2) #apply(temp1, 1, prod)
   }
   
 }
@@ -41,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=10) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=10, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -53,7 +54,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   mat_s <- array(NA, dim = c(its, max_knot, max_j)) #signs
   mat_v <- array(NA, dim = c(its, max_knot, max_j)) #vars
   
-  mat_w <- array(NA, dim = c(n, n, its)) #an nxn matrix replicated for each iteration
+  mat_w <- matrix(NA, its, n) #an nxn matrix replicated for each iteration
   
   mat_j <- matrix(NA, its, max_knot) #number of interactions: nint
   mat_beta <- matrix(NA, its, max_knot + 1) #+1 for intercept
@@ -62,18 +63,18 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   mat_sig[1] <- 1
   lam[1] <- 1
   
-  mat_w[,,1] <- diag(rep(1, n))
+  mat_w[1,] <- rep(1, n)
   
   nknot[1] <- 0 # First iteration must be a birth
   X_curr <- rep(1, n) %>% as.matrix() # first current X-matrix is just an intercept
   
-  Wcurr <- mat_w[,,1]
+  Wcurr <- diag(mat_w[1,])
   
   ### Likelihood in Denison, et. al ###
   #updated for robust t
   Vinv_curr <- crossprod(X_curr, Wcurr %*% X_curr) + 1/tau2 
   ahat_curr <- solve(Vinv_curr) %*% crossprod(X_curr, Wcurr %*% y)
-  dcurr <- g2 + ssy - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
+  dcurr <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
   
   count <- c(0,0,0) #track number of birth, death and change moves
   
@@ -99,8 +100,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     mat_j[i,] <- mat_j[i-1,] #nint
     nknot[i] <- nknot[i-1]
     
-    mat_w[,,i] <- mat_w[,,i-1]
-    
     # samp_j <- function(limit = max_j) {
     #   sample(1:limit, 1)
     # }
@@ -114,24 +113,15 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       j <- sample(max_j, 1) #nint.cand: degree of interaction for new basis function
       candidate_t <- runif(j, 0, 1) # sample knot locations for new basis function
       candidate_s <- sample(c(-1,1), j, replace = TRUE) #signs for new basis functions
-      
-      candidate_w <- 1/rchisq(n, nu+1) #sample candidate w from inv Chi Sq
-      # candidate_w <- rinvchisq(
-      #   n,
-      #   df = nu + 1,
-      #   scale = ((nu * mat_sig[i-1]) + (y - X %*% mat_beta[i-1,])^2) / (nu + 1)
-      # )
-      Wcand <- diag(1/candidate_w) #matrix is 1/candidate
-      
       var <- samp_vars(deg = j) #vars.cand: this is a candidate value for the columns of X to extract. There are j of them
       basis_mat <- spline.basis(signs = candidate_s, vars = var, knots = candidate_t, tdat = Xt) #candidate basis function
       X_cand <- cbind(X_curr, basis_mat)
       
       ### BASED ON DENISON, ET. AL ###
       
-      Vinv_cand <- crossprod(X_cand, Wcand %*% X_cand) + diag(nknot[i-1] + 2) / tau2 # +2: 1 for intercept, 1 for birth
-      ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcand %*% y)
-      dcand <- g2 + crossprod(y, Wcand%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
+      Vinv_cand <- crossprod(X_cand, Wcurr %*% X_cand) + diag(nknot[i-1] + 2) / tau2 # +2: 1 for intercept, 1 for birth
+      ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
+      dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       #update the likelihood based on t-errors
       
       llik.alpha <- (
@@ -142,9 +132,9 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       
       lprior.alpha <- ( # log prior ratio
         log(lam[i-1]) - log(nknot[i-1]+1) # nbasis: lambda/(M+1)
-        + log(1/max_j)  # nint
         + j * log(1/2)  # signs
         + log(1/choose(p, j)) # vars
+        + log(1/max_j)  # nint
         + log(nknot[i-1] + 1) # ordering
       )  
       
@@ -169,13 +159,11 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
         Vinv_curr <- Vinv_cand
         dcurr <- dcand
         X_curr <- X_cand
-        Wcurr <- Wcand #accept the W matrix
         nknot[i] <- nknot[i-1] + 1 #tracking the knots at every iteration
         mat_j[i, nknot[i]] <- j #the candidate degree of interaction is accepted
         mat_t[i, nknot[i], 1:j] <- candidate_t
         mat_s[i, nknot[i], 1:j] <- candidate_s
         mat_v[i, nknot[i], 1:j] <- var
-        mat_w[,,i] <- Wcand #update W matrix
         count[1] <- count[1] + 1
       }
     } 
@@ -183,7 +171,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     else if(choice == 2) { #DEATH
       pick <- sample(nknot[i-1], 1) # select a knot to delete from the current number
       X_cand <- X_curr[,-(pick+1)] # ACCOUNTING FOR THE INTERCEPT as pick is based on number of knots. 
-      #Wcand <- Wcurr[,-pick]
+      #Wcurr <- Wcurr[,-pick]
       # ncol(X) = nknot[i-1] + 1
       # HOW DO YOU DELETE A BASIS FUNCTION FROM W
       
@@ -264,7 +252,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       
       ### BASED ON DENISON, ET. AL ###
       
-      Vinv_cand <- crossprod(X_cand, Wcurr %*% Xcand) + diag(nknot[i-1]+1)/tau2
+      Vinv_cand <- crossprod(X_cand, Wcurr %*% X_cand) + diag(nknot[i-1]+1)/tau2
       ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
       dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       
@@ -276,6 +264,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       
       #acc <- min(0, llik)
       if(is.na(llik)) browser()
+      # ACCEPTANCE
       if(log(runif(1)) < llik) {
         #nknot[i] = nknot[i-1] has already been done way up above
         X_curr <- X_cand
@@ -292,15 +281,28 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1)
     
-    S <- solve(crossprod(X_curr) / mat_sig[i-1] + diag(nknot[i] + 1)/tau2)
-    mat_beta[i,1:(nknot[i]+1)] <- (
-      solve(t(X_curr) %*% Wcurr %*% X_curr) %*% t(X_curr) %*% Wcurr %*% y
+    mat_w[i,] <- 1/rgamma(
+      n,
+      shape = nu/2,
+      rate = nu*mat_sig[i-1]/2
+    ) #full conditional of V_i
+    Wcurr <- diag(mat_w[i,])
+    
+    S <- solve(crossprod(X_curr, Wcurr %*% X_curr) / mat_sig[i-1] + diag(nknot[i] + 1)/tau2)
+    mat_beta[i,1:(nknot[i]+1)] <- rmnorm(1, S %*% t(X_curr) %*% y/mat_sig[i-1], S)
+    
+    mat_sig[i] <- 1/rgamma(
+      1,
+      nu/2+g1+1,
+      nu*mat_sig[i-1]/2+g2
     )
     
-    mat_sig[i] <- (1/n)*crossprod(
-      (y- X_curr %*% mat_beta[i,1:(nknot[i]+1)]),
-      Wcurr %*% (y- X_curr %*% mat_beta[i,1:(nknot[i]+1)])
-    )
+    if(verbose == TRUE) {
+      if(i %% 500 == 0) {
+        cat("Iteration number", i, "\n")
+      }
+    }
+    
   }
   
   names(count) <- c("birth", "death", "change")
@@ -309,7 +311,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
        count = count, knots = mat_t, signs = mat_s, 
        vars = mat_v, int = mat_j, nknot = nknot, mat_beta = mat_beta, 
        mat_sig = mat_sig, lam = lam, W = Wcurr, mat_w = mat_w)
-  
 }
 ############################################################################################################
 ############################################################################################################
@@ -331,9 +332,9 @@ predict.bmars <- function(mod, X, nburn = 1000) {
                               knots = mod$knots[i,j,1:mod$int[i,j]],
                               tdat = Xt)
       
-    }
+    } #making basis functions w/ new data
     #browser()
-    pred[i-nburn,] <- B %*% mod$mat_beta[i,1:(mod$nknot[i]+1)]
+    pred[i-nburn,] <- B %*% mod$mat_beta[i,1:(mod$nknot[i]+1)] #X %*% beta
   }
   
   pred
