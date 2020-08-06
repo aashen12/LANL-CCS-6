@@ -11,6 +11,7 @@ output: pdf_document
 ```{r}
 rm(list = ls())
 source("robust_bmars.R")
+library(profvis)
 ```
 
 
@@ -27,12 +28,13 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 250
-mod <- bmars(x, its = iter, verbose = F)
+iter <- 300
+mod <- bmars(x, its = iter, verbose = TRUE)
 ```
 
 ```{r}
 mod$count
+mod$nknot
 mod$X %>% head
 tail(mod$mat_beta)
 ```
@@ -41,7 +43,7 @@ tail(mod$mat_beta)
 ```{r}
 mod$nknot[length(mod$nknot)]
 plot(mod$nknot, type = "l")
-matplot(mod$mat_beta[-(1:50),], type = "l")
+matplot(mod$mat_beta, type = "l")
 plot(mod$mat_sig, type="l")
 matplot(mod$mat_w, type = "l")
 ```

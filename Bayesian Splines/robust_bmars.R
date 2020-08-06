@@ -75,7 +75,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   # Vinv_curr <- crossprod(X_curr, Wcurr %*% X_curr) + 1/tau2 
   # ahat_curr <- solve(Vinv_curr) %*% crossprod(X_curr, Wcurr %*% y)
   # dcurr <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
-  Hinv <- solve(crossprod(X, solve(Wcurr)%*%X) + tau2^2 * diag(ncol(X)))
+  Hinv <- solve(crossprod(X, solve(Wcurr)%*%X) + 1/tau2 * diag(ncol(X)))
   bhat <- Hinv %*% t(X) %*% solve(Wcurr) %*% y
   count <- c(0,0,0) #track number of birth, death and change moves
   
@@ -125,7 +125,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       #update the likelihood based on t-errors
 
-      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + tau2^2 * diag(ncol(X_cand)))
+      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + 1/tau2 * diag(ncol(X_cand)))
       #browser()
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% solve(Wcurr) %*% y
       # llik.alpha <- (
@@ -181,8 +181,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     else if(choice == 2) { #DEATH
       pick <- sample(nknot[i-1], 1) # select a knot to delete from the current number
       X_cand <- X_curr[,-(pick+1)] # ACCOUNTING FOR THE INTERCEPT as pick is based on number of knots. 
-      #Wcurr <- Wcurr[,-pick]
-      # ncol(X) = nknot[i-1] + 1
+
       # HOW DO YOU DELETE A BASIS FUNCTION FROM W
       
       ### BASED ON DENISON, ET. AL ###
@@ -191,7 +190,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       # ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
       # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       
-      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + tau2^2 * diag(ncol(X_cand)))
+      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + 1/tau2 * diag(ncol(X_cand)))
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% solve(Wcurr) %*% y
       
       # llike <- (
@@ -273,7 +272,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       # ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
       # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       
-      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + tau2^2 * diag(ncol(X_cand)))
+      Hinv_cand <- solve(crossprod(X_cand, solve(Wcurr)%*%X_cand) + 1/tau2 * diag(ncol(X_cand)))
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% solve(Wcurr) %*% y
       
       llik <- 
@@ -314,7 +313,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     ) #full conditional of V_i
     Wcurr <- diag(mat_w[i,])
     #browser()
-    Hinv <- solve(crossprod(X, solve(Wcurr)%*%X) + tau2^2 * diag(ncol(X)))
+    Hinv <- solve(crossprod(X, solve(Wcurr)%*%X) + 1/tau2 * diag(ncol(X)))
     mat_beta[i,1:(ncol(X))] <- rmnorm(
       1,
       Hinv %*% crossprod(X, solve(Wcurr)%*%y),
@@ -328,7 +327,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     )
     
     if(verbose == TRUE) {
-      if(i %% 10 == 0) {
+      if(i %% 100 == 0) {
         cat("Iteration number", i, "\n")
       }
     }
