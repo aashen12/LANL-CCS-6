@@ -11,7 +11,7 @@ output: pdf_document
 ```{r}
 rm(list = ls())
 source("robust_bmars.R")
-library(profvis)
+#library(profvis)
 ```
 
 
@@ -28,7 +28,7 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 300
+iter <- 500
 mod <- bmars(x, its = iter, verbose = TRUE)
 ```
 
