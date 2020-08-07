@@ -28,9 +28,10 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 1000
+iter <- 100
 mod <- bmars(x, its = iter, verbose = TRUE)
 ```
+
 
 ```{r}
 mod$count
