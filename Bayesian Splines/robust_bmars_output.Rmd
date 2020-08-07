@@ -28,12 +28,13 @@ y <- rnorm(n,f(x),sigma)
 ```
 
 ```{r}
-iter <- 500
+iter <- 3000
 mod <- bmars(x, its = iter, verbose = TRUE)
 ```
 
 ```{r}
 mod$count
+mod$nknot[length(mod$nknot)]
 mod$nknot
 mod$X %>% head
 tail(mod$mat_beta)
@@ -41,11 +42,28 @@ tail(mod$mat_beta)
 
 
 ```{r}
-mod$nknot[length(mod$nknot)]
-plot(mod$nknot, type = "l")
-matplot(mod$mat_beta, type = "l")
-plot(mod$mat_sig, type="l")
-matplot(mod$mat_w, type = "l")
+X <- mod$X
+beta <- mod$beta
+
+plot(mod$nknot, type = "l",
+     main = "Number of knots over time") 
+
+plot(mod$mat_sig, type = "l",
+     main = "Sigma^2 values over time")
+
+plot(mod$lam, type = "l",
+     main = "Lambda values over time")
+
+matplot(mod$mat_beta, type = "l",
+        main = "Plot of regression coefficients over time")
+
+plot(X %*% beta, y,
+main = "Bayesian predicted values vs actual y values")
+abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
+
+mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
+cat("The predicted y values are correlated with the actual values with 
+an R^2 of", rsq, "\n")
 ```
 
 
