@@ -42,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000, h1=10, h2=10, nu=5, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000, h1=10, h2=10, nu=50, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -130,14 +130,14 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       #update the likelihood based on t-errors
       
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2 #* diag(ncol(X_cand))
+        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2 * diag(nknot[i-1]+1+1)
       )
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
       #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
       
       llik.alpha <- (
         0.5*log(1/tau2) # simplifying the tau2*I fraction
-        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
+        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -201,7 +201,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2
+        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]-1+1)
       )# * diag(ncol(X_cand)))
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
       
@@ -209,7 +209,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       
       llike <- (
         - 0.5*log(1/tau2) # simplifying the tau2*I fraction
-        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
+        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -293,10 +293,10 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
       
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2
+        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]+1)
       )# * diag(ncol(X_cand)))
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
-      dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
+      #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
       
       # llik <- 
       # (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
@@ -309,7 +309,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       # )
       
       llik <- (
-        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
+        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -337,11 +337,17 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1)
     
-    mat_w[i,] <- 1/rgamma(
+    # mat_w[i,] <- 1/rgamma(
+    #   n,
+    #   shape = (nu+1)/2,
+    #   rate = (nu*mat_sig[i-1]+(y- (X_curr%*%bhat_curr))^2)/2
+    # ) #full conditional of V_i
+    mat_w[i,] <- rinvchisq(
       n,
-      shape = (nu+1)/2,
-      rate = (nu*mat_sig[i-1]+(y-mean(y))^2)/2
-    ) #full conditional of V_i
+      nu+1,
+      (nu*mat_sig[i-1] + (y - (X_curr%*%bhat_curr))^2) / (nu+1)
+    )
+    #browser()
     Wcurr <- diag(mat_w[i,])
     
     #Hinv <- solve(crossprod(X_curr, diag(diag(1/Wcurr))%*%X_curr) + 1/tau2) #* diag(ncol(X_curr)))
@@ -351,12 +357,13 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       Hinv_curr
     )
     
-    mat_sig[i] <- 1/rgamma(
+    mat_sig[i] <- rgamma(
       1,
-      nu/2+g1+1,
-      (nu*mat_sig[i-1])/2+g2
+      g1+(n*nu/2),
+      g2+(nu/2)*sum(1/mat_w[i,])
     )
     
+
     if(verbose == TRUE) {
       if(i %% 500 == 0) {
         cat("Iteration i =", i, "\n")

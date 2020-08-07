@@ -64,6 +64,8 @@ abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
 mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
 cat("The predicted y values are correlated with the actual values with 
 an R^2 of", rsq, "\n")
+
+matplot(sqrt(mod$mat_w[600:1000,]), type="l")
 ```
 
 
