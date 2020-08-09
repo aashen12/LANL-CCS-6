@@ -361,7 +361,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       1,
       g1+(n*nu/2),
       g2+(nu/2)*sum(1/mat_w[i,])
-    )
+    ) # NEED TO FIND THE FULL CONDITIONAL
     
 
     if(verbose == TRUE) {
