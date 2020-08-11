@@ -42,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=.1, g2=1000, h1=10, h2=10, nu=50, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=50, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
