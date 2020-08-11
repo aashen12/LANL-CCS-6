@@ -5,14 +5,13 @@ date: "7/31/2020"
 output: pdf_document
 ---
 
-# Running the Script
-
+# Data Initialization
 
 ```{r}
 rm(list = ls())
 source("robust_bmars.R")
-#library(profvis)
 ```
+
 
 
 ```{r}
@@ -24,23 +23,36 @@ f <-function(x){
 sigma <- 1 # noise sd
 n <- 500 # number of observations
 x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
-y <- rnorm(n,f(x),sigma)
+y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 ```
+
+## Adding Arbitrary Extreme Outliers
 
 ```{r}
-iter <- 100
-mod <- bmars(x, its = iter, verbose = TRUE)
+#y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 100)
 ```
 
+\pagebreak
+
+# Running the Model
+
+```{r}
+iter <- 1000
+mod <- bmars(x, its = iter, nu = 50, verbose = TRUE)
+```
+
+# Results
 
 ```{r}
 mod$count
 mod$nknot[length(mod$nknot)]
-mod$nknot
-mod$X %>% head
-tail(mod$mat_beta)
+tail(mod$nknot, 50)
+tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)])])
 ```
 
+\pagebreak
+
+# Plots
 
 ```{r}
 X <- mod$X
@@ -58,6 +70,9 @@ plot(mod$lam, type = "l",
 matplot(mod$mat_beta, type = "l",
         main = "Plot of regression coefficients over time")
 
+matplot(sqrt(mod$mat_w[600:1000,]), type="l",
+        main = "Plot of v_i values over time")
+
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
 abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
@@ -66,7 +81,6 @@ mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
 cat("The predicted y values are correlated with the actual values with 
 an R^2 of", rsq, "\n")
 
-matplot(sqrt(mod$mat_w[600:1000,]), type="l")
 ```
 
 

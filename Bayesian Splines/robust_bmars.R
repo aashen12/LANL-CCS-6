@@ -42,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000, h1=10, h2=10, nu=50, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=.1, g2=1000, h1=10, h2=10, nu=50, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -69,7 +69,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
   X_curr <- rep(1, n) %>% as.matrix() # first current X-matrix is just an intercept
   
   Wcurr <- diag(mat_w[1,])
-  # Wcurr inverse is diag(diag(1/Wcurr))
+  # Wcurr inverse is diag(1/diag(Wcurr))
   
   ### Likelihood in Denison, et. al ###
   
@@ -77,10 +77,10 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
   # Vinv_curr <- crossprod(X_curr, Wcurr %*% X_curr) + 1/tau2
   # ahat_curr <- solve(Vinv_curr) %*% crossprod(X_curr, Wcurr %*% y)
   # dcurr <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
-  Hinv_curr <- solve(crossprod(X_curr, diag(diag(1/Wcurr))%*%X_curr) + 1/tau2)#* diag(ncol(X_curr)))
-  bhat_curr <- Hinv_curr %*% t(X_curr) %*% diag(diag(1/Wcurr)) %*% y
+  Hinv_curr <- solve(crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(ncol(X_curr)))
+  bhat_curr <- Hinv_curr %*% t(X_curr) %*% diag(1/diag(Wcurr)) %*% y
   #browser()
-  dcurr <- g2 + ssy - crossprod(bhat_curr, solve(Hinv_curr)%*%bhat_curr)
+  #dcurr <- g2 + ssy - crossprod(bhat_curr, solve(Hinv_curr)%*%bhat_curr)
   #ssy
   count <- c(0,0,0) #track number of birth, death and change moves
   
@@ -88,10 +88,11 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
     
     ## Reversible Jump Step ##
     # Uniformly decide whether to add, delete or change a basis function
+    #if(nknot[i-1] == max_knot) browser()
     fate <- function(knots = nknot[i-1]) {
-      if((knots == 0) | (knots == 1)) {return(1)} # having 0 or 1 knots must auto defer to birth
-      if(knots == max_knot) {sample(2:3, 1)} #at max_knot knot capacity, can only delete or change
-      sample(3, 1)
+      if((knots == 0)) {return(1)} # having 0 or 1 knots must auto defer to birth
+      if(knots == max_knot) {return(sample(2:3, 1))} #at max_knot knot capacity, can only delete or change
+      else{sample(3, 1)}
       # 1 = BIRTH
       # 2 = DEATH
       # 3 = CHANGE
@@ -130,9 +131,9 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       #update the likelihood based on t-errors
       
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2 * diag(nknot[i-1]+1+1)
+        crossprod(X_cand, diag(1/diag(Wcurr))%*%X_cand) + 1/tau2 * diag(nknot[i-1]+1+1)
       )
-      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
+      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
       #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
       
       llik.alpha <- (
@@ -148,8 +149,8 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       #if(is.na(llik.alpha)) browser()
       
       # llik.alpha <- 
-      # (-((nknot[i-1]+1)/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
-      # - (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat,solve(Hinv)%*%bhat)))
+      # (-((nknot[i-1]+1)/2) * log(tau2) - 0.5*(crossprod(y, diag(1/diag(Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
+      # - (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(1/diag(Wcurr))%*%y) - crossprod(bhat,solve(Hinv)%*%bhat)))
       
       lprior.alpha <- ( # log prior ratio
         log(lam[i-1]) - log(nknot[i-1]+1) # nbasis: lambda/(M+1)
@@ -175,8 +176,8 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       ratio_rj <- llik.alpha + lprior.alpha + lprop.alpha
       if(is.na(ratio_rj)) browser()
       if(log(runif(1)) < ratio_rj) { 
-        bhat_curr <- bhat_cand
         Hinv_curr <- Hinv_cand
+        bhat_curr <- bhat_cand
         #dcurr <- dcand
         X_curr <- X_cand
         nknot[i] <- nknot[i-1] + 1 #tracking the knots at every iteration
@@ -192,21 +193,14 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       pick <- sample(nknot[i-1], 1) # select a knot to delete from the current number
       X_cand <- X_curr[,-(pick+1)] # ACCOUNTING FOR THE INTERCEPT as pick is based on number of knots. 
 
-      # HOW DO YOU DELETE A BASIS FUNCTION FROM W
-      
       ### BASED ON DENISON, ET. AL ###
       
-      # Vinv_cand <- crossprod(X_cand, Wcurr %*% X_cand) + diag(nknot[i-1]+1-1) / tau2 #+1 int, -1 death
-      # ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
-      # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
-      
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]-1+1)
+        crossprod(X_cand, diag(1/diag(Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]-1+1)
       )# * diag(ncol(X_cand)))
-      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
+      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
       
-      #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
-      
+
       llike <- (
         - 0.5*log(1/tau2) # simplifying the tau2*I fraction
         - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
@@ -215,15 +209,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
         )
       )
-      # llike <- (
-      #   -0.5*log(1/tau2)
-      #   - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
-      #   + (g1 + n/2) * (log(dcurr) - log(dcand))
-      # )
-      
-      # llike <- 
-      #   (-((nknot[i-1]-1)/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
-      # - (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat,solve(Hinv)%*%bhat)))
       
       lprior <- (
         -log(lam[i-1]) + log(nknot[i-1])
@@ -288,25 +273,10 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       
       ### BASED ON DENISON, ET. AL ###
       
-      # Vinv_cand <- crossprod(X_cand, Wcurr %*% X_cand) + diag(nknot[i-1]+1)/tau2
-      # ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
-      # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
-      
       Hinv_cand <- solve(
-        crossprod(X_cand, diag(diag(1/Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]+1)
-      )# * diag(ncol(X_cand)))
-      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(diag(1/Wcurr)) %*% y
-      #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
-      
-      # llik <- 
-      # (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
-      # - (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(diag(1/Wcurr))%*%y) - crossprod(bhat,solve(Hinv)%*%bhat)))
-      
-      # llik <- (
-      #   -determinant(Hinv_cand)$mod/2
-      #   + determinant(Hinv_curr)$mod/2
-      #   + (g1+n/2) * (log(dcurr) - log(dcand))
-      # )
+        crossprod(X_cand, diag(1/diag(Wcurr))%*%X_cand) + 1/tau2* diag(nknot[i-1]+1)
+      )
+      bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
       
       llik <- (
         - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
@@ -316,7 +286,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
         )
       )
       
-      #acc <- min(0, llik)
       if(is.na(llik)) browser()
       # ACCEPTANCE
       if(log(runif(1)) < llik) {
@@ -324,9 +293,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
         X_curr <- X_cand
         Hinv_curr<-Hinv_cand
         bhat_curr<-bhat_cand
-        # ahat_curr <- ahat_cand
-        # Vinv_curr <- Vinv_cand
-        #dcurr <- dcand
         mat_t[i,tochange,1:mat_j[i,tochange]] <- candidate_t
         mat_s[i,tochange,1:mat_j[i,tochange]] <- candidate_s
         count[3] <- count[3] + 1
@@ -337,23 +303,20 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1)
     
-    # mat_w[i,] <- 1/rgamma(
-    #   n,
-    #   shape = (nu+1)/2,
-    #   rate = (nu*mat_sig[i-1]+(y- (X_curr%*%bhat_curr))^2)/2
-    # ) #full conditional of V_i
-    mat_w[i,] <- rinvchisq(
+    mat_w[i,] <- 1/rgamma(
       n,
-      nu+1,
-      (nu*mat_sig[i-1] + (y - (X_curr%*%bhat_curr))^2) / (nu+1)
-    )
-    #browser()
+      shape = (nu+1)/2,
+      rate = ( nu*mat_sig[i-1] + (y - (X_curr%*%bhat_curr))^2 )/2
+    ) #full conditional of V_i
     Wcurr <- diag(mat_w[i,])
     
-    #Hinv <- solve(crossprod(X_curr, diag(diag(1/Wcurr))%*%X_curr) + 1/tau2) #* diag(ncol(X_curr)))
+    Hinv_curr <- solve(
+      crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(nknot[i]+1)
+    ) #Hinv_curr must be updated if Wcurr is updated!!!
+    
     mat_beta[i,1:(nknot[i]+1)] <- rmnorm(
       1,
-      Hinv_curr %*% crossprod(X_curr, diag(diag(1/Wcurr))%*%y),
+      Hinv_curr %*% crossprod(X_curr, diag(1/diag(Wcurr))%*%y),
       Hinv_curr
     )
     
@@ -363,10 +326,10 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^6, g1=000000, g2=000000,
       g2+(nu/2)*sum(1/mat_w[i,])
     ) # NEED TO FIND THE FULL CONDITIONAL
     
-
+    #mat_sig[i]<-1
     if(verbose == TRUE) {
       if(i %% 500 == 0) {
-        cat("Iteration i =", i, "\n")
+        cat("Iteration number", i, "\n")
       }
     }
     

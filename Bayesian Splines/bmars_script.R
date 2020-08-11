@@ -52,7 +52,9 @@ bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=
   
   mat_j <- matrix(NA, its, max_knot) #number of interactions: nint
   mat_beta <- matrix(NA, its, max_knot + 1) #+1 for intercept
+  
   mat_beta[1,1] <- mean(y)
+  
   mat_sig <- lam <- nknot <- rep(NA, its) #sigma^2, lambda, number of knots
   mat_sig[1] <- 1
   lam[1] <- 1
@@ -73,8 +75,8 @@ bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=
     
     # Uniformly decide whether to add, delete or change a basis function
     fate <- function(knots = nknot[i-1]) {
-      if((knots == 0) | (knots == 1)) {return(1)} # having 0 or 1 knots must auto defer to birth
-      if(knots == max_knot) {sample(2:3, 1)} #at max_knot knot capacity, can only delete or change
+      if(knots == 0) {return(1)} # having 0 or 1 knots must auto defer to birth
+      if(knots == max_knot) {return(sample(2:3, 1))} #at max_knot knot capacity, can only delete or change
       sample(3, 1)
       # 1 = BIRTH
       # 2 = DEATH
