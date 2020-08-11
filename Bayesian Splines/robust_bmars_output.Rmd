@@ -29,7 +29,7 @@ y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 ## Adding Arbitrary Extreme Outliers
 
 ```{r}
-#y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 100)
+y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 10)
 ```
 
 \pagebreak
@@ -37,8 +37,8 @@ y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 # Running the Model
 
 ```{r}
-iter <- 1000
-mod <- bmars(x, its = iter, nu = 50, verbose = TRUE)
+nmcmc <- 1000
+mod <- bmars(x, its = nmcmc, nu = 90, verbose = TRUE)
 ```
 
 # Results
@@ -46,7 +46,7 @@ mod <- bmars(x, its = iter, nu = 50, verbose = TRUE)
 ```{r}
 mod$count
 mod$nknot[length(mod$nknot)]
-tail(mod$nknot, 50)
+tail(mod$nknot, 25)
 tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)])])
 ```
 
@@ -70,7 +70,7 @@ plot(mod$lam, type = "l",
 matplot(mod$mat_beta, type = "l",
         main = "Plot of regression coefficients over time")
 
-matplot(sqrt(mod$mat_w[600:1000,]), type="l",
+matplot(sqrt(mod$mat_w[,-c(1,10,100)]), type="l",
         main = "Plot of v_i values over time")
 
 plot(X %*% beta, y,
@@ -83,4 +83,7 @@ an R^2 of", rsq, "\n")
 
 ```
 
+```{r}
+var((y-(X%*%beta))[-c(1,10,100)])
+```
 

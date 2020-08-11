@@ -1,4 +1,4 @@
-# Function to find the optimal adaptive regression spline for multivariate data assuming non-Gaussian likelihoods
+# Function to find the optimal adaptive regression spline for multivariate data assuming Student's t-distributed likelihoods
 # Andy Shen, Devin Francom
 # Statistical Sciences Group (CCS-6): Los Alamos National Laboratory
 
@@ -42,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=50, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0.1, g2=10000, h1=10, h2=10, nu=10, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
