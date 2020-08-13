@@ -9,7 +9,7 @@ output: pdf_document
 
 ```{r}
 rm(list = ls())
-source("robust_bmars.R")
+source("robust_bmars3.R")
 ```
 
 
@@ -37,17 +37,20 @@ y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 10)
 # Running the Model
 
 ```{r}
-nmcmc <- 1000
-mod <- bmars(x, its = nmcmc, nu = 90, verbose = TRUE)
+nmcmc <- 3000
+mod <- bmars(x, its = nmcmc, nu = 500, verbose = TRUE)
 ```
 
 # Results
 
 ```{r}
+X <- mod$X
+beta <- mod$beta
 mod$count
 mod$nknot[length(mod$nknot)]
 tail(mod$nknot, 25)
-tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)])])
+tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)]+1)])
+as.vector(beta)
 ```
 
 \pagebreak
@@ -55,11 +58,11 @@ tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)])])
 # Plots
 
 ```{r}
-X <- mod$X
-beta <- mod$beta
-
 plot(mod$nknot, type = "l",
      main = "Number of knots over time") 
+
+# plot(mod$alpha, type = "l",
+#      main = "alpha^2 values over time")
 
 plot(mod$mat_sig, type = "l",
      main = "Sigma^2 values over time")
@@ -67,11 +70,14 @@ plot(mod$mat_sig, type = "l",
 plot(mod$lam, type = "l",
      main = "Lambda values over time")
 
-matplot(mod$mat_beta, type = "l",
-        main = "Plot of regression coefficients over time")
+# matplot(mod$mat_beta, type = "l",
+#         main = "Plot of regression coefficients over time")
 
-matplot(sqrt(mod$mat_w[,-c(1,10,100)]), type="l",
+matplot(sqrt(mod$mat_w), type="l",
         main = "Plot of v_i values over time")
+
+# matplot(sqrt(mod$mat_u), type="l",
+#         main = "Plot of u_i values over time")
 
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
@@ -84,6 +90,8 @@ an R^2 of", rsq, "\n")
 ```
 
 ```{r}
-var((y-(X%*%beta))[-c(1,10,100)])
+tail(mod$mat_sig)
+tail(sqrt(mod$mat_w[,1:25]))
+var((y-(X%*%beta)))
 ```
 
