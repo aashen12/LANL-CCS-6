@@ -2,6 +2,8 @@
 # Andy Shen, Devin Francom
 # Statistical Sciences Group (CCS-6): Los Alamos National Laboratory
 
+### THIS SCRIPT IS OBSOLETE ###
+
 ############################################################################################################
 
 library(mvtnorm)
