@@ -9,7 +9,7 @@ output: pdf_document
 
 ```{r}
 rm(list = ls())
-source("robust_bmars3.R")
+source("robust_bmars.R")
 ```
 
 
@@ -29,7 +29,7 @@ y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 ## Adding Arbitrary Extreme Outliers
 
 ```{r}
-y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 10)
+#y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 10)
 ```
 
 \pagebreak
@@ -37,8 +37,8 @@ y[c(1,10,100)] <- y[c(1,10,100)] + rnorm(3, 0, 10)
 # Running the Model
 
 ```{r}
-nmcmc <- 3000
-mod <- bmars(x, its = nmcmc, nu = 500, verbose = TRUE)
+nmcmc <- 2000
+mod <- bmars(x, its = nmcmc, nu = 8, verbose = TRUE)
 ```
 
 # Results

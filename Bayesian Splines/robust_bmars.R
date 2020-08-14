@@ -42,7 +42,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=10, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2=10, nu=10, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -303,10 +303,18 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1) #pull number of basis down
     
+    #bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
+    
+    mat_beta[i,1:(nknot[i]+1)] <- rmnorm(
+      1,
+      Hinv_curr %*% crossprod(X_curr, diag(1/diag(Wcurr))%*%y),
+      mat_sig[i-1]*Hinv_curr
+    )
+    
     mat_w[i,] <- rinvchisq(
       n,
       nu+1,
-      ((nu*mat_sig[i-1]) + (y-(X_curr%*%bhat_curr))^2)/(nu+1)
+      ((nu*mat_sig[i-1]) + (y-(X_curr%*%as.matrix(mat_beta[i,(1:(nknot[i]+1))])))^2)/(nu+1)
     )
     
     # mat_w[i,] <- 1/rgamma(
@@ -315,17 +323,13 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     #   rate = ( nu*mat_sig[i-1] + (y - (X_curr%*%bhat_curr))^2 )/2
     # ) #full conditional of V_i
     # #mat_w[i,]<-1
+    
     Wcurr <- diag(mat_w[i,])
     
     Hinv_curr <- solve(
       crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(nknot[i]+1)
     ) #Hinv_curr must be updated if Wcurr is updated!!!
-    
-    mat_beta[i,1:(nknot[i]+1)] <- rmnorm(
-      1,
-      Hinv_curr %*% crossprod(X_curr, diag(1/diag(Wcurr))%*%y),
-      Hinv_curr
-    )
+
 
     mat_sig[i] <- rgamma(
       1,
@@ -333,7 +337,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       g2+(nu/2)*sum(1/mat_w[i,])
     ) # NEED TO FIND THE FULL CONDITIONAL
     
-    #mat_sig[i]<-1
     if(verbose == TRUE) {
       if(i %% 500 == 0) {
         cat("Iteration number", i, "\n")

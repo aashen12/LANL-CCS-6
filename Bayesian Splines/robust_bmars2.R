@@ -294,11 +294,18 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     ### GIBBS SAMPLING STEPS FOR CONSTANTS ###  
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1) #pull number of basis down
+
     
+    mat_beta[i,1:(nknot[i]+1)] <- rmnorm(
+      1,
+      Hinv_curr %*% crossprod(X_curr, diag(1/diag(Wcurr))%*%y),
+      Hinv_curr
+    )
+    #browser()
     mat_u[i,] <- rinvchisq(
       n,
       nu+1,
-      ((nu*mat_tau2[i-1]) + ( (y-(X_curr%*%bhat_curr))/a2[i-1] )^2) / (nu+1)
+      ((nu*mat_tau2[i-1]) + ( (y-(as.matrix(X_curr) %*% as.matrix(mat_beta[i,(1:(nknot[i]+1))]) ))/a2[i-1] )^2) / (nu+1)
     )
     
     # mat_u[i,] <- 1/rgamma(
@@ -317,7 +324,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     a2[i] <- rinvchisq(
       1,
       n,
-      sum( (y-(X_curr%*%bhat_curr))^2 / mat_u[i,] )
+      sum( (y - (as.matrix(X_curr) %*% as.matrix(mat_beta[i,(1:(nknot[i]+1))]) ))^2 / mat_u[i,] )
     )
     
     mat_sig[i] <- a2[i] * mat_tau2[i]
@@ -328,12 +335,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     Hinv_curr <- solve(
       crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(nknot[i]+1)
     ) #Hinv_curr must be updated if Wcurr is updated!!!
-    
-    mat_beta[i,1:(nknot[i]+1)] <- rmnorm(
-      1,
-      Hinv_curr %*% crossprod(X_curr, diag(1/diag(Wcurr))%*%y),
-      Hinv_curr
-    )
     
     if(verbose == TRUE) {
       if(i %% 500 == 0) {
