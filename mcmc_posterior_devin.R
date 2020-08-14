@@ -1,3 +1,4 @@
+# Gibbs Sampling for Bayesian LM
 n<-100
 data <- rmvnorm(n, c(1, 2, 3), cbind(c(1, 1.4, 2.1), c(1.4, 4.0, 4.2), c(2.1, 4.2, 9.0)))
 p<-3
