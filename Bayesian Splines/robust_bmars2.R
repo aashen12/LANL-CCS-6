@@ -324,7 +324,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     a2[i] <- rinvchisq(
       1,
       n,
-      sum( (y - (as.matrix(X_curr) %*% as.matrix(mat_beta[i,(1:(nknot[i]+1))]) ))^2 / mat_u[i,] )
+      (1/n)*sum( (y - (as.matrix(X_curr) %*% as.matrix(mat_beta[i,(1:(nknot[i]+1))]) ))^2 / mat_u[i,] )
     )
     
     mat_sig[i] <- a2[i] * mat_tau2[i]
