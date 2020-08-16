@@ -109,7 +109,6 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     mat_j[i,] <- mat_j[i-1,] #nint
     nknot[i] <- nknot[i-1]
     
-    
     samp_vars <- function(deg) {
       p <- ncol(X)
       sample(p, deg)
