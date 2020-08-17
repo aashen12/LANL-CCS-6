@@ -29,7 +29,7 @@ y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 ## Adding Arbitrary Extreme Outliers
 
 ```{r}
-index <- sample(n, 50)
+index <- sample(n, 20)
 y[index] <- y[index] + rnorm(index, 0, 10)
 ```
 
@@ -39,7 +39,7 @@ y[index] <- y[index] + rnorm(index, 0, 10)
 
 ```{r}
 nmcmc <- 2000
-mod <- bmars(x, its = nmcmc, nu = 300, verbose = TRUE)
+mod <- bmars(x, its = nmcmc, nu = 10, verbose = TRUE)
 ```
 
 # Results
@@ -77,11 +77,14 @@ plot(mod$lam, type = "l",
 matplot(sqrt(mod$mat_w[seq(nmcmc/2,nmcmc,by=2),]), type="l",
         main = "Plot of v_i values over time")
 
+hist(colMeans((mod$mat_w[seq(nmcmc/2,nmcmc,by=2),])))
+
 # matplot(sqrt(mod$mat_u), type="l",
 #         main = "Plot of u_i values over time")
 
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
+points((X %*% beta)[index],y[index],col="red")
 abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
 
 mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
@@ -90,6 +93,7 @@ an R^2 of", rsq, "\n")
 a<-(y-(X %*% (mod$mat_beta)[nrow(mod$mat_beta),(1:(mod$nknot[nmcmc]+1))]))
 plot(a,type="l")
 var(a[-index])
+plot(mod$alpha,type="l")
 ```
 
 ```{r}

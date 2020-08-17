@@ -327,7 +327,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     )
     
     mat_sig[i] <- a2[i] * mat_tau2[i]
-    mat_w[i,] <- a2[i] * mat_u[i,] 
+    mat_w[i,] <- a2[i] * mat_u[i,]  #v_i
     
     Wcurr <- diag(mat_w[i,])
     
