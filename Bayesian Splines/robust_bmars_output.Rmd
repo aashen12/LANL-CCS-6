@@ -20,7 +20,7 @@ f <-function(x){
   10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
 }
 
-sigma <- 0.1 # noise sd
+sigma <- 1 # noise sd
 n <- 500 # number of observations
 x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
 y <- rnorm(n,f(x),sigma) #+ rnorm(n)
@@ -30,7 +30,7 @@ y <- rnorm(n,f(x),sigma) #+ rnorm(n)
 
 ```{r}
 index <- sample(n, 20)
-y[index] <- y[index] + rnorm(index, 0, 10)
+y[index] <- y[index] + rnorm(index, 0, 15)
 ```
 
 \pagebreak
@@ -38,8 +38,8 @@ y[index] <- y[index] + rnorm(index, 0, 10)
 # Running the Model
 
 ```{r}
-nmcmc <- 2000
-mod <- bmars(x, its = nmcmc, nu = 10, verbose = TRUE)
+nmcmc <- 3000
+mod <- bmars(x, its = nmcmc, nu = 5, verbose = TRUE)
 ```
 
 # Results
