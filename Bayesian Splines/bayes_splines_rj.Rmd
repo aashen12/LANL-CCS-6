@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Let's say you want to fit a model using some wiggly data.  Maybe
 
 ```{r cars}
+rm(list = ls())
 n<-300
 x<-seq(0,1,length.out=n)
 y<-sin(2*pi*x^2)*10+rnorm(n)
@@ -33,6 +34,7 @@ Try some combinations of $s$ and $t$ to see what your basis functions look like,
 set.seed(12)
 source("mcmc_spline_rj.R")
 ```
+
 
 ```{r, warning=FALSE}
 iterations <- 3000
