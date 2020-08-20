@@ -9,7 +9,7 @@ output: pdf_document
 
 ```{r}
 rm(list = ls())
-set.seed(12)
+set.seed(1626)
 source("robust_bmars2.R")
 ```
 
@@ -95,6 +95,7 @@ plot(a,type="l")
 var(a[-index])
 plot(mod$alpha,type="l")
 plot(mod$mat_tau2,type="l")
+plot(mod$mat_u,type="l")
 ```
 
 ```{r}
