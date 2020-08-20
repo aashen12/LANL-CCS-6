@@ -57,12 +57,12 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
   
   mat_j <- matrix(NA, its, max_knot) #number of interactions: nint
   mat_beta <- matrix(NA, its, max_knot + 1) #+1 for intercept
-  mat_beta[1,1] <- mean(y)
+  mat_beta[1,1] <- runif(1) #mean(y)
   mat_sig <- mat_tau2 <- lam <- nknot <- a2 <- rep(NA, its) #sigma^2, lambda, number of knots
-  mat_tau2[1] <- 1
-  lam[1] <- 1
+  mat_tau2[1] <- runif(1) #1
+  lam[1] <- runif(1,0,5) #1
   a2[1] <- log(runif(1))^2
-  mat_u[1,] <- rep(1, n)
+  mat_u[1,] <- rep(runif(1),n) #rep(1, n)
   
   mat_w[1,] <- a2[1] * mat_u[1,]
   Wcurr <- diag(mat_w[1,])
@@ -316,8 +316,8 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     
     mat_tau2[i] <- rgamma(
       1,
-      n*nu/2,
-      (nu/2)*sum(1/mat_u[i,])
+      (n*nu/2),
+      ((nu/2)*sum(1/mat_u[i,]))
     )
     
     a2[i] <- rinvchisq(
@@ -341,6 +341,11 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       }
     }
     
+    if(a2[i] > 10^18) { #scaling
+      a2[i] <- a2[i] / 10^6
+      mat_u[i,] <- mat_u[i,] * 10^6
+      mat_tau2[i] <- mat_tau2[i] * 10^6
+    }   
   }
   
   names(count) <- c("birth", "death", "change")

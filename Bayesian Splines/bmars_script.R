@@ -38,7 +38,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=10, h2=10) {
+bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=10, h2=10, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -273,8 +273,15 @@ bmars <- function(X, its, max_knot = 50, max_j = 3, tau2 = 10^4, g1=0, g2=0, h1=
       shape = (n/2) + g1,
       rate = g2 + 0.5 * sum((y-X_curr %*% mat_beta[i,1:(nknot[i]+1)])^2)
     )
+    
+    if(verbose == TRUE) {
+      if(i %% 1000 == 0) {
+        cat("Iteration number", i, "\n")
+      }
   }
   
+
+  }
   names(count) <- c("birth", "death", "change")
   
   list(X = X_curr, beta = ahat_curr, 

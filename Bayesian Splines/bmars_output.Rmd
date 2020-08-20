@@ -26,7 +26,7 @@ y <- rnorm(n,f(x),sigma)
 
 ```{r}
 iter <- 10000
-mod <- bmars(x, its = iter)
+mod <- bmars(x, its = iter, verbose = TRUE)
 ```
 
 ```{r}
