@@ -130,7 +130,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       
       llik.alpha <- (
         0.5*log(1/tau2) # simplifying the tau2*I fraction
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + 0.5*determinant(Hinv_cand)$mod - 0.5*determinant(Hinv_curr)$mod
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -194,7 +194,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       
       llike <- (
         - 0.5*log(1/tau2) # simplifying the tau2*I fraction
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + 0.5*determinant(Hinv_cand)$mod - 0.5*determinant(Hinv_curr)$mod
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -270,7 +270,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
       
       llik <- (
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + 0.5*determinant(Hinv_cand)$mod - 0.5*determinant(Hinv_curr)$mod
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -326,6 +326,16 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
       (1/n)*sum( (y - (as.matrix(X_curr) %*% as.matrix(mat_beta[i,(1:(nknot[i]+1))]) ))^2 / mat_u[i,] )
     )
     
+    if(a2[i] < 10^-12) { #scaling
+      a2[i] <- a2[i] * 10^9
+      mat_u[i,] <- mat_u[i,] / 10^9
+      mat_tau2[i] <- mat_tau2[i] / 10^9
+    } else if(a2[i] > 10^18) { #scaling
+      a2[i] <- a2[i] / 10^6
+      mat_u[i,] <- mat_u[i,] * 10^6
+      mat_tau2[i] <- mat_tau2[i] * 10^6
+    }
+    
     mat_sig[i] <- a2[i] * mat_tau2[i]
     mat_w[i,] <- a2[i] * mat_u[i,]  #v_i
     
@@ -340,16 +350,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
         cat("Iteration number", i, "\n")
       }
     }
-    
-    if(a2[i] > 10^18) { #scaling
-      a2[i] <- a2[i] / 10^6
-      mat_u[i,] <- mat_u[i,] * 10^6
-      mat_tau2[i] <- mat_tau2[i] * 10^6
-    } else if(a2[i] < 10^-12) { #scaling
-      a2[i] <- a2[i] * 10^6
-      mat_u[i,] <- mat_u[i,] / 10^6
-      mat_tau2[i] <- mat_tau2[i] / 10^6
-    }      
+    i <- i + 1
   }
   
   names(count) <- c("birth", "death", "change")
