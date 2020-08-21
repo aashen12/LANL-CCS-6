@@ -38,7 +38,7 @@ y <- matrix(x[,1]*sin(x[,1]*x[,2]) + rnorm(n, 0, noise), ncol=1)
 # Running the Model
 
 ```{r}
-nmcmc <- 3000
+nmcmc <- 5000
 mod <- bmars(x, its = nmcmc, nu = 100, verbose = TRUE)
 ```
 
