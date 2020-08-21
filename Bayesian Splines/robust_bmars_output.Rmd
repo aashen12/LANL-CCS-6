@@ -23,6 +23,8 @@ source("robust_bmars2.R")
 # n <- 500 # number of observations
 # x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
 # y <- rnorm(n,f(x),sigma) #+ rnorm(n)
+# index <- c(50, 100, 150)
+# y[index] <- y[index] + rnorm(length(index), 0, 15)
 n <- 200
 p <- 4
 noise <- rep(.1, 200)
@@ -31,20 +33,13 @@ x <- matrix(rnorm(n*p), nrow=n, ncol=p)
 y <- matrix(x[,1]*sin(x[,1]*x[,2]) + rnorm(n, 0, noise), ncol=1)
 ```
 
-## Adding Arbitrary Extreme Outliers
-
-```{r}
-# index <- sample(n, 20)
-# y[index] <- y[index] + rnorm(index, 0, 15)
-```
-
 \pagebreak
 
 # Running the Model
 
 ```{r}
 nmcmc <- 3000
-mod <- bmars(x, its = nmcmc, nu = 10, verbose = TRUE)
+mod <- bmars(x, its = nmcmc, nu = 100, verbose = TRUE)
 ```
 
 # Results
@@ -56,7 +51,6 @@ mod$count
 mod$nknot[length(mod$nknot)]
 tail(mod$nknot, 25)
 tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)]+1)])
-as.vector(beta)
 # plot(colMeans(mod$mat_w[-(1:1000),]), abs(y - X%*%beta))
 ```
 
@@ -71,7 +65,7 @@ plot(mod$nknot, type = "l",
 # plot(mod$alpha, type = "l",
 #      main = "alpha^2 values over time")
 
-plot(mod$mat_sig, type = "l",
+plot(mod$mat_sig[-(1:100)], type = "l",
      main = "Sigma^2 values over time")
 
 plot(mod$lam, type = "l",
@@ -109,5 +103,6 @@ tail(mod$mat_sig)
 tail(sqrt(mod$mat_w[,1:25]))
 var((y-(X%*%beta)))
 var(y)
+var(y[-c(50,100,150)])
 ```
 
