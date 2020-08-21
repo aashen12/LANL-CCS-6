@@ -249,7 +249,6 @@ outliers.pred<-which(colMeans(sqrt(1/mod$v[-c(1:25000),]))>cutoff)
 plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
 points(y[outliers.pred],(mod$X%*%mod$b)[outliers.pred],col=3,pch='+')
 
-
 xtest<-matrix(runif(1000*10),1000,10)
 pred<-predict.tbass(mod,xtest)
 plot(f(xtest),colMeans(pred)); abline(a=0,b=1,col=2)
@@ -263,12 +262,12 @@ var(f(xtest)-colMeans(predict(mod.normal,xtest)))
 
 # dat<-read.csv('~/git/realTime/AlAl/data_trial5/features_cdf104S.csv')
 # X<-read.table('~/git/realTime/AlAl/Al.trial5.design.txt',head=T)
-# 
+#
 # yy<-dat[,7]
 # yy<-scale(yy)
 # mod.normal<-bass(X,yy)
 # plot(mod.normal)
-# 
+#
 # mod<-tbass(X,yy,nu=10)
 # plot(sqrt(mod$s2[-c(1:1000)]),type='l')
 # plot(mod$nbasis,type='l')
