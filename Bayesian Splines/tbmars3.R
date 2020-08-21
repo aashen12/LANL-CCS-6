@@ -223,14 +223,14 @@ f <-function(x){
 
 sigma <- .05 # noise sd
 n <- 1000 # number of observations
-x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
+x <- matrix(runif(n*5),n,5) #10 variables, only first 5 matter
 y <- rnorm(n,f(x),sigma)
 ind<-sample(n,size=10)
 y[ind]<-rnorm(5,f(x[ind,]),15)
 col<-rep(1,n)
 col[ind]<-2
 
-mod<-tbass(x,y,nu=10,nmcmc=100000)
+mod<-tbass(x,y,nu=10,nmcmc=10000,tau2=1e8)
 
 
 mod$count
