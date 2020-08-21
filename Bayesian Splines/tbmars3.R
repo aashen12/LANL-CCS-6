@@ -230,7 +230,7 @@ y[ind]<-rnorm(5,f(x[ind,]),15)
 col<-rep(1,n)
 col[ind]<-2
 
-mod<-tbass(x,y,nu=10,nmcmc=10000,tau2=1e8)
+mod<-tbass(x,y,nu=10,nmcmc=2000,tau2=1e8)
 
 
 mod$count
@@ -238,10 +238,10 @@ plot(mod$nbasis,type='l')
 plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
 plot(sqrt(mod$s2[-c(1:1000)]),type='l')
 matplot(sqrt(1/mod$v[seq(1000,10000,100),]),type='l')
-plot(mod$lam[-c(1:1000)],type='l')
+plot(mod$lam[-c(1:1000)],type='l',main='Lambda values over time')
 
-hist(colMeans(1/mod$v[-c(1:25000),]),breaks=50)
-plot(colMeans(1/mod$v[-c(1:25000),]),(y-mod$X%*%mod$b)^2,col=col)
+hist(colMeans(1/mod$v[-c(1:250),]),breaks=50)
+plot(colMeans(1/mod$v[-c(1:250),]),(y-mod$X%*%mod$b)^2,col=col)
 
 cutoff<-1.5#quantile(colMeans(sqrt(1/mod$v[-c(1:5000),])),probs = .75)+1.5*IQR(colMeans(sqrt(1/mod$v[-c(1:5000),])))
 outliers.pred<-which(colMeans(sqrt(1/mod$v[-c(1:25000),]))>cutoff)
