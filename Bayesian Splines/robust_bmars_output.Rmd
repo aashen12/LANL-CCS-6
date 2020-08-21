@@ -15,22 +15,27 @@ source("robust_bmars2.R")
 
 
 ```{r}
-set.seed(12)
-f <-function(x){
-  10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
-}
-
-sigma <- 0.1 # noise sd
-n <- 500 # number of observations
-x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
-y <- rnorm(n,f(x),sigma) #+ rnorm(n)
+# f <-function(x){
+#   10*sin(pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
+# }
+# 
+# sigma <- 1 # noise sd
+# n <- 500 # number of observations
+# x <- matrix(runif(n*10),n,10) #10 variables, only first 5 matter
+# y <- rnorm(n,f(x),sigma) #+ rnorm(n)
+n <- 200
+p <- 4
+noise <- rep(.1, 200)
+noise[c(50, 100, 150)] <- 2
+x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+y <- matrix(x[,1]*sin(x[,1]*x[,2]) + rnorm(n, 0, noise), ncol=1)
 ```
 
 ## Adding Arbitrary Extreme Outliers
 
 ```{r}
-index <- sample(n, 20)
-y[index] <- y[index] + rnorm(index, 0, 10)
+# index <- sample(n, 20)
+# y[index] <- y[index] + rnorm(index, 0, 15)
 ```
 
 \pagebreak
@@ -38,7 +43,7 @@ y[index] <- y[index] + rnorm(index, 0, 10)
 # Running the Model
 
 ```{r}
-nmcmc <- 2000
+nmcmc <- 3000
 mod <- bmars(x, its = nmcmc, nu = 10, verbose = TRUE)
 ```
 
@@ -52,6 +57,7 @@ mod$nknot[length(mod$nknot)]
 tail(mod$nknot, 25)
 tail(mod$mat_beta[,1:(mod$nknot[length(mod$nknot)]+1)])
 as.vector(beta)
+# plot(colMeans(mod$mat_w[-(1:1000),]), abs(y - X%*%beta))
 ```
 
 \pagebreak
@@ -84,7 +90,7 @@ hist(colMeans((mod$mat_w[seq(nmcmc/2,nmcmc,by=2),])))
 
 plot(X %*% beta, y,
 main = "Bayesian predicted values vs actual y values")
-points((X %*% beta)[index],y[index],col="red")
+points((X %*% beta)[c(50, 100, 150)],y[c(50, 100, 150)],col="red")
 abline(0, 1, lwd = 5, col = "blue1") #should follow a very straight line
 
 mod1 <- lm(y ~ X %*% beta); rsq <- summary(mod1)$r.squared
@@ -92,8 +98,10 @@ cat("The predicted y values are correlated with the actual values with
 an R^2 of", rsq, "\n")
 a<-(y-(X %*% (mod$mat_beta)[nrow(mod$mat_beta),(1:(mod$nknot[nmcmc]+1))]))
 plot(a,type="l")
-var(a[-index])
-plot(mod$alpha,type="l")
+var(a)
+plot(log(mod$alpha),type="l")
+plot(log(mod$mat_tau2),type="l")
+matplot(log(mod$mat_u),type="l")
 ```
 
 ```{r}
