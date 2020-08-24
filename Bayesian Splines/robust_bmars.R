@@ -6,7 +6,6 @@
 
 library(mvtnorm)
 library(mnormt)
-library(dplyr)
 library(LaplacesDemon)
 
 ### [a]+ FUNCTION ### 
@@ -42,7 +41,7 @@ spline.basis <- function(signs, vars, knots, tdat, deg = 1) {
 
 ### BMARS ALGORITHM ###
 
-bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2=10, nu=10, verbose = FALSE) {
+bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2=10, nu=10, verbose = FALSE) {
   Xt <- t(X)
   n <- length(y)
   p <- ncol(X)
@@ -66,17 +65,13 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
   mat_w[1,] <- rep(1, n)
   
   nknot[1] <- 0 # First iteration must be a birth
-  X_curr <- rep(1, n) %>% as.matrix() # first current X-matrix is just an intercept
+  X_curr <- as.matrix(rep(1, n)) # first current X-matrix is just an intercept
   
   Wcurr <- diag(mat_w[1,])
   # Wcurr inverse is diag(1/diag(Wcurr))
   
   ### Likelihood in Denison, et. al ###
-  
   #updated for robust t
-  # Vinv_curr <- crossprod(X_curr, Wcurr %*% X_curr) + 1/tau2
-  # ahat_curr <- solve(Vinv_curr) %*% crossprod(X_curr, Wcurr %*% y)
-  # dcurr <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_curr, Vinv_curr %*% ahat_curr)
   Hinv_curr <- solve(crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(ncol(X_curr)))
   bhat_curr <- Hinv_curr %*% t(X_curr) %*% diag(1/diag(Wcurr)) %*% y
   #browser()
@@ -92,7 +87,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
     fate <- function(knots = nknot[i-1]) {
       if((knots == 0)) {return(1)} # having 0 or 1 knots must auto defer to birth
       if(knots == max_knot) {return(sample(2:3, 1))} #at max_knot knot capacity, can only delete or change
-      else{sample(3, 1)}
+      else{return(sample(3, 1))}
       # 1 = BIRTH
       # 2 = DEATH
       # 3 = CHANGE
@@ -125,20 +120,14 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
       
       ### BASED ON DENISON, ET. AL ###
       
-      # Vinv_cand <- crossprod(X_cand, Wcurr %*% X_cand) + diag(nknot[i-1] + 2) / tau2 # +2: 1 for intercept, 1 for birth
-      # ahat_cand <- solve(Vinv_cand) %*% crossprod(X_cand, Wcurr %*% y)
-      # dcand <- g2 + crossprod(y, Wcurr%*%y) - crossprod(ahat_cand, Vinv_cand %*% ahat_cand)
-      #update the likelihood based on t-errors
-      
       Hinv_cand <- solve(
         crossprod(X_cand, diag(1/diag(Wcurr))%*%X_cand) + 1/tau2 * diag(nknot[i-1]+1+1)
       )
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
-      #dcand <- g2 + ssy - crossprod(bhat_cand, solve(Hinv_cand)%*%bhat_cand)
-      
+
       llik.alpha <- (
         0.5*log(1/tau2) # simplifying the tau2*I fraction
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -146,11 +135,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
         #+ (g1+n/2)*(log(dcurr) - log(dcand))
       ) # calculate the log likelihood ratio
       
-      #if(is.na(llik.alpha)) browser()
-      
-      # llik.alpha <- 
-      # (-((nknot[i-1]+1)/2) * log(tau2) - 0.5*(crossprod(y, diag(1/diag(Wcurr))%*%y) - crossprod(bhat_cand,solve(Hinv_cand)%*%bhat_cand)))
-      # - (-((nknot[i-1])/2) * log(tau2) - 0.5*(crossprod(y, diag(1/diag(Wcurr))%*%y) - crossprod(bhat,solve(Hinv)%*%bhat)))
+      if(is.na(llik.alpha)) browser()
       
       lprior.alpha <- ( # log prior ratio
         log(lam[i-1]) - log(nknot[i-1]+1) # nbasis: lambda/(M+1)
@@ -174,11 +159,12 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
       )
       
       ratio_rj <- llik.alpha + lprior.alpha + lprop.alpha
+      
       if(is.na(ratio_rj)) browser()
+      
       if(log(runif(1)) < ratio_rj) { 
         Hinv_curr <- Hinv_cand
         bhat_curr <- bhat_cand
-        #dcurr <- dcand
         X_curr <- X_cand
         nknot[i] <- nknot[i-1] + 1 #tracking the knots at every iteration
         mat_j[i, nknot[i]] <- j #the candidate degree of interaction is accepted
@@ -203,7 +189,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
 
       llike <- (
         - 0.5*log(1/tau2) # simplifying the tau2*I fraction
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -279,7 +265,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
       bhat_cand <- Hinv_cand %*% t(X_cand) %*% diag(1/diag(Wcurr)) %*% y
       
       llik <- (
-        - determinant(Hinv_cand)$mod/2 + determinant(Hinv_curr)$mod/2
+        + determinant(Hinv_cand)$mod/2 - determinant(Hinv_curr)$mod/2
         + 0.5*(
           crossprod(bhat_cand, solve(Hinv_cand)%*% bhat_cand) 
           - crossprod(bhat_curr, solve(Hinv_curr)%*% bhat_curr)
@@ -299,7 +285,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
       }
     }
     
-    ### GIBBS SAMPLING STEPS FOR CONSTANTS ###  
+    ### GIBBS SAMPLING STEPS ###  
     
     lam[i] <- rgamma(1, h1 + nknot[i], h2 + 1) #pull number of basis down
     
@@ -311,34 +297,28 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=1, g2=1, h1=10, h2
       mat_sig[i-1]*Hinv_curr
     )
     
-    mat_w[i,] <- rinvchisq(
-      n,
-      nu+1,
-      ((nu*mat_sig[i-1]) + (y-(X_curr%*%as.matrix(mat_beta[i,(1:(nknot[i]+1))])))^2)/(nu+1)
-    )
+    res <- y - (X_curr%*%t(mat_beta[i,1:(nknot[i]+1),drop=F])) #residuals
     
-    # mat_w[i,] <- 1/rgamma(
-    #   n,
-    #   shape = (nu+1)/2,
-    #   rate = ( nu*mat_sig[i-1] + (y - (X_curr%*%bhat_curr))^2 )/2
-    # ) #full conditional of V_i
-    # #mat_w[i,]<-1
+    mat_w[i,] <- rgamma(
+      n,
+      (nu+1)/2, 
+      nu/2 + 0.5/(mat_sig[i-1])*res^2
+    )
+
+    mat_sig[i] <- 1/rgamma(
+      1,
+      n/2 + g1,
+      g2 + 0.5*sum(mat_w[i,]*res^2)
+    )
     
     Wcurr <- diag(mat_w[i,])
     
     Hinv_curr <- solve(
       crossprod(X_curr, diag(1/diag(Wcurr))%*%X_curr) + 1/tau2 * diag(nknot[i]+1)
     ) #Hinv_curr must be updated if Wcurr is updated!!!
-
-
-    mat_sig[i] <- rgamma(
-      1,
-      g1+(n*nu/2),
-      g2+(nu/2)*sum(1/mat_w[i,])
-    ) # NEED TO FIND THE FULL CONDITIONAL
     
     if(verbose == TRUE) {
-      if(i %% 500 == 0) {
+      if(i %% 1000 == 0) {
         cat("Iteration number", i, "\n")
       }
     }

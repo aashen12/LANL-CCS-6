@@ -352,7 +352,7 @@ bmars <- function(X, its, max_knot=50, max_j=3, tau2=10^4, g1=0, g2=0, h1=10, h2
     ) #Hinv_curr must be updated if Wcurr is updated!!!
     
     if(verbose == TRUE) {
-      if(i %% 500 == 0) {
+      if(i %% 1000 == 0) {
         cat("Iteration number", i, "\n")
       }
     }
