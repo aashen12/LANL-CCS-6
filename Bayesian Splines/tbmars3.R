@@ -26,7 +26,7 @@ getd<-function(X,v,s2,tau2,y){
 }
 
 
-tbass<-function(X,y,max.int=3,max.basis=50,tau2=10^4,nu=30,nmcmc=10000,g1=0,g2=0,h1=10,h2=10){
+tbass_slow<-function(X,y,max.int=3,max.basis=50,tau2=10^4,nu=30,nmcmc=10000,g1=0,g2=0,h1=10,h2=10){
   Xt<-t(X)
   n<-length(y)
   p<-ncol(X)
@@ -216,48 +216,48 @@ predict.tbass<-function(mod,X,nburn=1000){
 
 ################################################################################################################
 # test it out
-
-f <-function(x){
-  10*sin(2*pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
-}
-
-sigma <- .05 # noise sd
-n <- 1000 # number of observations
-x <- matrix(runif(n*5),n,5) #10 variables, only first 5 matter
-y <- rnorm(n,f(x),sigma)
-ind<-sample(n,size=10)
-y[ind]<-rnorm(5,f(x[ind,]),15)
-col<-rep(1,n)
-col[ind]<-2
-
-mod<-tbass(x,y,nu=10,nmcmc=2000,tau2=1e8)
-
-
-mod$count
-plot(mod$nbasis,type='l')
-plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
-plot(sqrt(mod$s2[-c(1:1000)]),type='l')
-matplot(sqrt(1/mod$v[seq(1000,10000,100),]),type='l')
-plot(mod$lam[-c(1:1000)],type='l',main='Lambda values over time')
-
-hist(colMeans(1/mod$v[-c(1:250),]),breaks=50)
-plot(colMeans(1/mod$v[-c(1:250),]),(y-mod$X%*%mod$b)^2,col=col)
-
-cutoff<-1.5#quantile(colMeans(sqrt(1/mod$v[-c(1:5000),])),probs = .75)+1.5*IQR(colMeans(sqrt(1/mod$v[-c(1:5000),])))
-outliers.pred<-which(colMeans(sqrt(1/mod$v[-c(1:25000),]))>cutoff)
-
-plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
-points(y[outliers.pred],(mod$X%*%mod$b)[outliers.pred],col=3,pch='+')
-
-xtest<-matrix(runif(1000*10),1000,10)
-pred<-predict.tbass(mod,xtest)
-plot(f(xtest),colMeans(pred)); abline(a=0,b=1,col=2)
-var(f(xtest)-colMeans(pred))
-
-library(BASS)
-mod.normal<-bass(x,y)
-plot(mod.normal)
-var(f(xtest)-colMeans(predict(mod.normal,xtest)))
+# 
+# f <-function(x){
+#   10*sin(2*pi*x[,1]*x[,2])+20*(x[,3]-.5)^2+10*x[,4]+5*x[,5]
+# }
+# 
+# sigma <- .05 # noise sd
+# n <- 1000 # number of observations
+# x <- matrix(runif(n*5),n,5) #10 variables, only first 5 matter
+# y <- rnorm(n,f(x),sigma)
+# ind<-sample(n,size=10)
+# y[ind]<-rnorm(5,f(x[ind,]),15)
+# col<-rep(1,n)
+# col[ind]<-2
+# 
+# mod<-tbass(x,y,nu=10,nmcmc=2000,tau2=1e8)
+# 
+# 
+# mod$count
+# plot(mod$nbasis,type='l')
+# plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
+# plot(sqrt(mod$s2[-c(1:1000)]),type='l')
+# matplot(sqrt(1/mod$v[seq(1000,10000,100),]),type='l')
+# plot(mod$lam[-c(1:1000)],type='l',main='Lambda values over time')
+# 
+# hist(colMeans(1/mod$v[-c(1:250),]),breaks=50)
+# plot(colMeans(1/mod$v[-c(1:250),]),(y-mod$X%*%mod$b)^2,col=col)
+# 
+# cutoff<-1.5#quantile(colMeans(sqrt(1/mod$v[-c(1:5000),])),probs = .75)+1.5*IQR(colMeans(sqrt(1/mod$v[-c(1:5000),])))
+# outliers.pred<-which(colMeans(sqrt(1/mod$v[-c(1:25000),]))>cutoff)
+# 
+# plot(y,mod$X%*%mod$b,col=col); abline(a=0,b=1,col=2)
+# points(y[outliers.pred],(mod$X%*%mod$b)[outliers.pred],col=3,pch='+')
+# 
+# xtest<-matrix(runif(1000*10),1000,10)
+# pred<-predict.tbass(mod,xtest)
+# plot(f(xtest),colMeans(pred)); abline(a=0,b=1,col=2)
+# var(f(xtest)-colMeans(pred))
+# 
+# library(BASS)
+# mod.normal<-bass(x,y)
+# plot(mod.normal)
+# var(f(xtest)-colMeans(predict(mod.normal,xtest)))
 
 
 # dat<-read.csv('~/git/realTime/AlAl/data_trial5/features_cdf104S.csv')
